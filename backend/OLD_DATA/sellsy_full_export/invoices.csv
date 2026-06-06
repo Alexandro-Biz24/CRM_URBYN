@@ -1,0 +1,15 @@
+﻿ID;Numero;Objet;Date;Echeance;Statut;Client;Email;Total HT;TVA;Total TTC;Devise;Proprietaire
+52841969;FC_00001;78-Impression 360-Carrière sous Poissy-Palissade Acquisition-202511-OPP-03276;;;paid;;;;;;EUR;
+52841973;FC_00002;78-Essor Group-Poissy-Dynamikum-202505-OPP-03106;;;paid;;;;;;EUR;
+52841981;FC_00003;75-Chrome Hearts-Paris-Lower + Upper window stickers-202510-OPP-03238;;;paid;;;;;;EUR;
+52842020;FC_00004;92-PLD-La Défense-10 Totem-202412-OPP-03290;;;paid;;;;;;EUR;
+52842028;FC_00005;60-Commune-Nogent sur Oise-Habillage Chantier-202512-OPP-03287;;;paid;;;;;;EUR;
+52842031;FC_00006;98-ABC Coffee-Monaco-Mareterra Pelliculage NUIT BAS-202601-OPP-03294;;;paid;;;;;;EUR;
+52842069;FC_00007;75-Surprise-Paris-Habillage-202602-OPP-03299;;;paid;;;;;;EUR;
+52842085;FC_00008;98-Zephyr-Monaco-Film-202602-OPP-03308;;;paid;;;;;;EUR;
+52842086;FC_00009;Accompagnement;;;paid;;;;;;EUR;
+52842087;FC_00010;75-Surprise-Paris-Habillage-202602-OPP-03299;;;late;;;;;;EUR;
+52842089;FC_00011;73-MND-Sainte Hélène du Lac-Massif-202602-OPP-03301;;;due;;;;;;EUR;
+52842101;FC_00012;92-Immorente-Saint Cloud-Habillage Palissade-202602-OPP-03307;;;due;;;;;;EUR;
+52842105;FC_00013;60-Commune-Nogent sur Oise-Habillage Chantier-202512-OPP-03287;;;paid;;;;;;EUR;
+52842115;FC_00014;92-PLD-La Défense-10 Totem-202412-OPP-03290;;;due;;;;;;EUR;

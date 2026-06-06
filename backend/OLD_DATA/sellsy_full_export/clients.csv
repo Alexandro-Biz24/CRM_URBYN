@@ -1,0 +1,685 @@
+﻿ID;Type;Nom;Email;Tel;Siret;Code NAF;Statut;Adresse;Ville;CP;Pays;Tags;Date creation
+12748818;client;Delaunay;;;;;;;;;;;2018-01-23
+12750999;client;Société RPG - Groupe Rougier & Plé;;;;;;;;;;;2018-01-23
+12754677;client;Syctom;;;;;;;;;;;2018-01-24
+12755018;client;Paris La Défense;;;;;;;;;;;2018-01-24
+12757073;client;Etat d'Esprit;;;;;;;;;;;2018-01-24
+12758108;client;A PLUS B;marc.b@aplusb-expo.com;;;;;;;;;;2018-01-24
+12758120;client;AASR;;;;;;;;;;;2018-01-24
+12758125;client;Abbaye de Fontevraud;;;;;;;;;;;2018-01-24
+12758137;client;Acta Vista Fort St Nicolas;;;;;;;;;;;2018-01-24
+12758154;client;ADIM concepts;claire.biret@vinci-construction.fr;;;;;;;;;;2018-01-24
+12758176;client;Agence Babel;;;;;;;;;;;2018-01-24
+12758188;client;Agence Epiceum;;;;;;;;;;;2018-01-24
+12758221;client;Agora Opinion (ex-Agora Energy);;;;;;;;;;;2018-01-24
+12758236;client;Algeco Bordeaux;;;;;;;;;;;2018-01-24
+12758238;client;Algeco Lyon;;;;;;;;;;;2018-01-24
+12758239;client;Algeco Nantes;;;;;;;;;;;2018-01-24
+12758241;client;Algeco Paris-Ouest;;;;;;;;;;;2018-01-24
+12758242;client;Algeco (siège);;;;;;;;;;;2018-01-24
+12758243;client;Algeco Strasbourg;;;;;;;;;;;2018-01-24
+12758244;client;Algeco Marseille;;;;;;;;;;;2018-01-24
+12758262;client;AMC Ingenierie;;;;;;;;;;;2018-01-24
+12758269;client;Anatome;;;;;;;;;;;2018-01-24
+12758274;client;Ann Tuil;;;;;;;;;;;2018-01-24
+12758324;client;ASIP puteaux-la defense;;;;;;;;;;;2018-01-24
+12758352;client;Ateliers Saint-André;;;;;;;;;;;2018-01-24
+12758354;client;ATP - Atlantique Travaux Publics;;;;;;;;;;;2018-01-24
+12758362;client;Autant pour voir que pour être vues Alain Mikli;;;;;;;;;;;2018-01-24
+12758364;client;Autodis Concessionnaire Toyota;;;;;;;;;;;2018-01-24
+12758374;client;AYOR Planet Sushi St Quentin (F);;;;;;;;;;;2018-01-24
+12758379;client;Babyliss;;;;;;;;;;;2018-01-24
+12758449;client;Boulanger Claye Souilly;;;;;;;;;;;2018-01-24
+12758453;client;Boulanger Créteil Pompadour;;;;;;;;;;;2018-01-24
+12758457;client;Boulanger Lognes;;;;;;;;;;;2018-01-24
+12758464;client;Boulanger Thiais;;;;;;;;;;;2018-01-24
+12758467;client;Boulanger Villier-sur-Marne;;;;;;;;;;;2018-01-24
+12758473;client;Bouygues Bâtiment Ile de France;;;;;;;;;;;2018-01-24
+12758474;client;Bouygues Bâtiment Ile De France Gennevilliers;;;;;;;;;;;2018-01-24
+12758475;client;Bouygues Construction IDF;;;;;;;;;;;2018-01-24
+12758477;client;Bouygues Travaux Publics;;;;;;;;;;;2018-01-24
+12758481;client;Brest Automobiles Distributeur Toyota;brest.auto@ctoyota.net;;;;;;;;;;2018-01-24
+12758501;client;C&A France;;;;;;;;;;;2018-01-24
+12758512;client;Ca Plaine Centrale Val Marne;;;;;;;;;;;2018-01-24
+12758514;client;Ca St-Quentin-En-Yvelines;;;;;;;;;;;2018-01-24
+12758564;client;CAP Boulanger Fleury-Mérogis;;;;;;;;;;;2018-01-24
+12758582;client;Carrefour Hypers;;;;;;;;;;;2018-01-24
+12758583;client;Carrefour Vannes;;;;;;;;;;;2018-01-24
+12758586;client;Casino de Larmor-Plage;;;;;;;;;;;2018-01-24
+12758590;client;Catherine de Mitry Corp;;;;;;;;;;;2018-01-24
+12758608;client;Central Parc Automobile Concession Toyota Nevers;;;;;;;;;;;2018-01-24
+12758639;client;Charrier;charrier@lagardemeregnani.fr;;;;;;;;;;2018-01-24
+12758641;client;Chartres Aménagement;frederic.bertrand@sem-chartres.com;;;;;;;;;;2018-01-24
+12758643;client;Chatignoux;;;;;;;;;;;2018-01-24
+12758688;client;Clean-tag - Carré Urbain;;;;;;;;;;;2018-01-24
+12758694;client;CENTRE DES MONUMENTS NATIONAUX;;;;;;;;;;;2018-01-24
+12758722;client;Collection Pinault Paris;;;;;;;;;;;2018-01-24
+12758767;client;Cougnaud Services;;;;;;;;;;;2018-01-24
+12758783;client;Credit Agricole Immobilier;;;;;;;;;;;2018-01-24
+12758790;client;Creteil Habitat;;;;;;;;;;;2018-01-24
+12758793;client;Cryptone;;;;;;;;;;;2018-01-24
+12758801;client;Czernik;;;;;;;;;;;2018-01-24
+12758809;client;Darty Asnières;;;;;;;;;;;2018-01-24
+12758810;client;Darty Beaugrenelle;;;;;;;;;;;2018-01-24
+12758812;client;Darty Belleville;;;;;;;;;;;2018-01-24
+12758813;client;Darty BNF;;;;;;;;;;;2018-01-24
+12758815;client;Darty Boulogne;;;;;;;;;;;2018-01-24
+12758817;client;Darty Chatillon;;;;;;;;;;;2018-01-24
+12758819;client;Darty Coignières;;;;;;;;;;;2018-01-24
+12758820;client;Darty Creil;;;;;;;;;;;2018-01-24
+12758823;client;Darty Herblay;;;;;;;;;;;2018-01-24
+12758827;client;Darty La Villette;;;;;;;;;;;2018-01-24
+12758830;client;Darty Mantes la Jolie;;;;;;;;;;;2018-01-24
+12758836;client;Darty Nation;;;;;;;;;;;2018-01-24
+12758839;client;Darty Passy;;;;;;;;;;;2018-01-24
+12758840;client;Darty Plaisir;;;;;;;;;;;2018-01-24
+12758842;client;Darty Rivoli;;;;;;;;;;;2018-01-24
+12758843;client;Darty Saint Ouen;;;;;;;;;;;2018-01-24
+12758844;client;Darty Saint Ouen 2;;;;;;;;;;;2018-01-24
+12758845;client;Darty Saintes;;;;;;;;;;;2018-01-24
+12758846;client;Darty Sartrouville;;;;;;;;;;;2018-01-24
+12758847;client;Darty St Brice Sous Forêt;;;;;;;;;;;2018-01-24
+12758850;client;Darty Ternes;;;;;;;;;;;2018-01-24
+12758851;client;Darty Val d'Europe;;;;;;;;;;;2018-01-24
+12758854;client;Darty Villennes-sur-Seine;;;;;;;;;;;2018-01-24
+12758855;client;Darty Vitry;;;;;;;;;;;2018-01-24
+12758859;client;Dauchez Payet;;;;;;;;;;;2018-01-24
+12758870;client;DEFACTO;;;;;;;;;;;2018-01-24
+12758934;client;Drapeaux Dejean Marine;Contact@dejean-drapeaux.com;;;;;;;;;;2018-01-24
+12758935;client;Dreaming-factory;;;;;;;;;;;2018-01-24
+12758938;client;Du Pareil Au Même;;;;;;;;;;;2018-01-24
+12758945;client;Dyl Enseigne;;;;;;;;;;;2018-01-24
+12758947;client;Dyson France;;;;;;;;;;;2018-01-24
+12758948;client;E.C Pradeau Morin;;;;;;;;;;;2018-01-24
+12758951;client;EatWell;;;;;;;;;;;2018-01-24
+12758970;client;Eiffage Aménagement / Infrastructure  /Eiffage Génie Civil Ile de France;;;;;;;;;;;2018-01-24
+12758972;client;Eiffage Construction;;;;;;;;;;;2018-01-24
+12758974;client;Eiffage Construction Alsace Franche-Comté;;;;;;;;;;;2018-01-24
+12758975;client;Eiffage Construction Auvergne Rhône Alpes;;;;;;;;;;;2018-01-24
+12758979;client;Eiffage construction Gard;gard.construction@eiffage.com;;;;;;;;;;2018-01-24
+12758980;client;Eiffage Construction Grand Est;;;;;;;;;;;2018-01-24
+12758981;client;Eiffage Construction Grand Ouest;;;;;;;;;;;2018-01-24
+12758982;client;Eiffage Construction Habitat;;;;;;;;;;;2018-01-24
+12758984;client;Eiffage Construction Haute Normandie;;;;;;;;;;;2018-01-24
+12758985;client;EIFFAGE CONSTRUCTION IDF ILE DE FRANCE;;;;;;;;;;;2018-01-24
+12758987;client;Eiffage Construction Limousin;;;;;;;;;;;2018-01-24
+12758988;client;Eiffage Construction Lorraine;;;;;;;;;;;2018-01-24
+12758989;client;Eiffage Construction Midi-Pyrénées;;;;;;;;;;;2018-01-24
+12758991;client;Eiffage Construction Paris Patrimoine;;;;;;;;;;;2018-01-24
+12758992;client;Eiffage Construction Pays Basque Landes;;;;;;;;;;;2018-01-24
+12758993;client;Eiffage Construction Provence;;;;;;;;;;;2018-01-24
+12758994;client;Eiffage Construction Saint-Denis;;;;;;;;;;;2018-01-24
+12758996;client;Eiffage Construction Tour;;;;;;;;;;;2018-01-24
+12758997;client;Eiffage Construction Val de Seine;;;;;;;;;;;2018-01-24
+12758999;client;Eiffage Immobilier Ile de France;;;;;;;;;;;2018-01-24
+12759011;client;Elysées Biarritz;;;;;;;;;;;2018-01-24
+12759016;client;Empreinte Publicitaire Poseur et imprimeur;;;;;;;;;;;2018-01-24
+12759032;client;EPADESA EPA DE LA DEFENSE ARCHE;;;;;;;;;;;2018-01-24
+12759036;client;EPAURIF;;;;;;;;;;;2018-01-24
+12759039;client;Equinoxe;;;;;;;;;;;2018-01-24
+12759040;client;Equivil Centre équestre de Suresnes;suresnes@equivil.fr;;;;;;;;;;2018-01-24
+12759058;client;Ets Darty et fils;;;;;;;;;;;2018-01-24
+12759074;client;Eurovia Management;;;;;;;;;;;2018-01-24
+12759075;client;Eurovia ILE DE FRANCE Gennevilliers;;;;;;;;;;;2018-01-24
+12759095;client;FAGSI;;;;;;;;;;;2018-01-24
+12759126;client;Foncière Habitat;;;;;;;;;;;2018-01-24
+12759131;client;Fondation du Patrimoine Délégation Poitou-Charentes;poitoucharentes@fondation-patrimoine.org;;;;;;;;;;2018-01-24
+12759138;client;Forum international;megaramaexploitation@gmail.com;;;;;;;;;;2018-01-24
+12759141;client;Four Seasons Resort Seychelles;;;;;;;;;;;2018-01-24
+12759152;client;Fruizz;;;;;;;;;;;2018-01-24
+12759165;client;Garage Baroche Toyota;;;;;;;;;;;2018-01-24
+12759173;client;GCA Cherbourg Concession Toyota Annexe St Lô-Granville;;;;;;;;;;;2018-01-24
+12759174;client;GCA Le Mans Concessionnaire Toyota;;;;;;;;;;;2018-01-24
+12759175;client;GCA Rennes Concession Toyota;;;;;;;;;;;2018-01-24
+12759176;client;GCC;dr-idf@gcc.fr;;;;;;;;;;2018-01-24
+12759202;client;Giorgio Armani prêt à porter;;;;;;;;;;;2018-01-24
+12759244;client;Legendre Ile de France;idf@groupe-legendre.com;;;;;;;;;;2018-01-24
+12759246;client;Groupe Marketing Events;;;;;;;;;;;2018-01-24
+12759250;client;Groupe Polylogis;;;;;;;;;;;2018-01-24
+12759254;client;Groupe Signature;;;;;;;;;;;2018-01-24
+12759255;client;SIGNATURE IDF;;;;;;;;;;;2018-01-24
+12759269;client;GTM Bâtiment;;;;;;;;;;;2018-01-24
+12759276;client;Hôtel Français;;;;;;;;;;;2018-01-24
+12759325;client;HighCo;;;;;;;;;;;2018-01-24
+12759330;client;Historial de la Grande Guerre;;;;;;;;;;;2018-01-24
+12759342;client;Homunity;;;;;;;;;;;2018-01-24
+12759344;client;Hory Chauvelin;agence@hory-chauvelin.fr;;;;;;;;;;2018-01-24
+12759348;client;Hotel d'Alsace ***;;;;;;;;;;;2018-01-24
+12759362;client;Ibiza;;;;;;;;;;;2018-01-24
+12759369;client;Id Beauty Licensee & Distributor;;;;;;;;;;;2018-01-24
+12759372;client;IDEX Energies;;;;;;;;;;;2018-01-24
+12759374;client;Ile Events;;;;;;;;;;;2018-01-24
+12759393;client;Ingenico S.A.;;;;;;;;;;;2018-01-24
+12759449;client;Key –L;;;;;;;;;;;2018-01-24
+12759491;client;La Maison du Chocolat;philippe.marx@lamaisonduchocolat.com;;;;;;;;;;2018-01-24
+12759514;client;Lafarge;;;;;;;;;;;2018-01-24
+12759516;client;Lagardère Paris Racing Ressources;;;;;;;;;;;2018-01-24
+12759595;client;LIBRAIRIE DARRIEUMERLOU;depot.librairie.darrieumerlou@wanadoo.fr;;;;;;;;;;2018-01-24
+12759602;client;Limoges Metropole;;;;;;;;;;;2018-01-24
+12759609;client;LNCSA Les Nouveaux Constructeurs;fcoutellier@lncsa.fr;;;;;;;;;;2018-01-24
+12759658;client;Luminance International;;;;;;;;;;;2018-01-24
+12759727;client;Mairie Bayonne;;;;;;;;;;;2018-01-24
+12759776;client;Mairie d'Avoine;hasnamontgobert@ville-avoine.fr;;;;;;;;;;2018-01-24
+12759777;client;Mairie de Bagnoles de l'Orne;mairiedgs@bagnolesdelorne.com;;;;;;;;;;2018-01-24
+12759786;client;Mairie Douai;;;;;;;;;;;2018-01-24
+12759791;client;COMMUNE D EPINAY SUR SEINE;;;;;;;;;;;2018-01-24
+12759829;client;COMMUNE D IVRY SUR SEINE;;;;;;;;;;;2018-01-24
+12759835;client;Mairie La Garenne-Colombes;;;;;;;;;;;2018-01-24
+12759851;client;Mairie Le Vésinet;;;;;;;;;;;2018-01-24
+12759853;client;Mairie Les Mureaux;;;;;;;;;;;2018-01-24
+12759895;client;Mairie Nanterre;;;;;;;;;;;2018-01-24
+12759902;client;COMMUNE DE NOGENT SUR OISE;;;;;;;;;;;2018-01-24
+12759907;client;Mairie Orléans;;;;;;;;;;;2018-01-24
+12759937;client;Mairie Rosny-Sous-Bois;;;;;;;;;;;2018-01-24
+12759960;client;Mairie St-Germain-En-Laye;;;;;;;;;;;2018-01-24
+12759982;client;Mairie Valenciennes;;;;;;;;;;;2018-01-24
+12759990;client;Mairie Ville d'Avray;;;;;;;;;;;2018-01-24
+12760002;client;Mairie Villeurbanne;;;;;;;;;;;2018-01-24
+12760013;client;Mapub;;;;;;;;;;;2018-01-24
+12760029;client;Matamata;;;;;;;;;;;2018-01-24
+12760038;client;Mediamax;info@mediamax.fr;;;;;;;;;;2018-01-24
+12760052;client;Michelon Nitzel;;;;;;;;;;;2018-01-24
+12760083;client;Modulobase;;;;;;;;;;;2018-01-24
+12760092;client;Montre Service SAS;;;;;;;;;;;2018-01-24
+12760111;client;Nacarat;;;;;;;;;;;2018-01-24
+12760118;client;NESPRESSO FRANCE SAS;;;;;;;;;;;2018-01-24
+12760152;client;OCDE;;;;;;;;;;;2018-01-24
+12760166;client;Oleron Chocolats;oleron.chocolats@sfr.fr;;;;;;;;;;2018-01-24
+12760167;client;Olivia Calmels Evenements;;;;;;;;;;;2018-01-24
+12760174;client;ONAC - Office National des Anciens Combattants;;;;;;;;;;;2018-01-24
+12760252;client;Optimisa;;;;;;;;;;;2018-01-24
+12760274;client;Oscar et Valentine;;;;;;;;;;;2018-01-24
+12760298;client;Paris Sud aménagement (ex- Semmassy);;;;;;;;;;;2018-01-24
+12760309;client;Paul Morgan;;;;;;;;;;;2018-01-24
+12760325;client;Photomaton;;;;;;;;;;;2018-01-24
+12760339;client;Planet Sushi;;;;;;;;;;;2018-01-24
+12760340;client;Planet Sushi Antony (F);;;;;;;;;;;2018-01-24
+12760342;client;Planet Sushi Lille Bettignies;;;;;;;;;;;2018-01-24
+12760343;client;Planet Sushi Limoges MAKILIM (F);jpmconseil@wanadoo.fr;;;;;;;;;;2018-01-24
+12760344;client;Planet Sushi Monaco (F);;;;;;;;;;;2018-01-24
+12760358;client;Portakabin SAS;calais.web@portakabin.fr;;;;;;;;;;2018-01-24
+12760371;client;Prince de Galles;;;;;;;;;;;2018-01-24
+12760403;client;Racing Arena;;;;;;;;;;;2018-01-24
+12760412;client;Razel Bec;;;;;;;;;;;2018-01-24
+12760414;client;Realnewtech;;;;;;;;;;;2018-01-24
+12760422;client;ASSOCIATION POUR LA SAUVEGARDE ET LA VALORISATION DU RELAIS DE FONTENAY;;;;;;;;;;;2018-01-24
+12760450;client;S.A.S. Pruvost Toyota;;;;;;;;;;;2018-01-24
+12760471;client;Sadev 94;;;;;;;;;;;2018-01-24
+12760492;client;Saentys;;;;;;;;;;;2018-01-24
+12760527;client;SAM des Aménagements du Portier;;;;;;;;;;;2018-01-24
+12760542;client;SARL IERA;;;;;;;;;;;2018-01-24
+12760609;client;Sem 92;;;;;;;;;;;2018-01-24
+12760624;client;Sem Pariseine;;;;;;;;;;;2018-01-24
+12760693;client;SEMNA/SPLNA;;;;;;;;;;;2018-01-24
+12760705;client;Sennse;;;;;;;;;;;2018-01-24
+12760740;client;SIDV;;;;;;;;;;;2018-01-24
+12760744;client;SIEMP SOREQA;;;;;;;;;;;2018-01-24
+12760774;client;SN ERCT Construction;;;;;;;;;;;2018-01-24
+12760777;client;SNCF;;;;;;;;;;;2018-01-24
+12760778;client;SNCF Eole;;;;;;;;;;;2018-01-24
+12760790;client;Société Bureau À Coté;;;;;;;;;;;2018-01-24
+12760841;client;Sovilec Enseignes et Signalétique;;;;;;;;;;;2018-01-24
+12760849;client;SPLA Cergy-Pontoise Aménagement;spla@cergypontoise-amenagement.fr;;;;;;;;;;2018-01-24
+12760851;client;Sportiello;;;;;;;;;;;2018-01-24
+12760853;client;STA 45 Toyota;;;;;;;;;;;2018-01-24
+12760862;client;STIPA S.A.S. Imprimeur papier;;;;;;;;;;;2018-01-24
+12760866;client;Strat&Act;;;;;;;;;;;2018-01-24
+12760897;client;TCR;;;;;;;;;;;2018-01-24
+12760937;client;Toyota France Siège;;;;;;;;;;;2018-01-24
+12766141;client;Villa Venezia SPA;;;;;;;;;;;2018-01-25
+12766144;client;ZE REPONSE;;;;;;;;;;;2018-01-25
+12766146;client;Yvydy;;;;;;;;;;;2018-01-25
+12766152;client;Ze Gato 1;;;;;;;;;;;2018-01-25
+12766181;client;Un pour Tous;;;;;;;;;;;2018-01-25
+12766182;client;Vilogia;;;;;;;;;;;2018-01-25
+12766202;client;VINCI CONSTRUCTION;;;;;;;;;;;2018-01-25
+12766208;client;Urban Rhapsody;;;;;;;;;;;2018-01-25
+12766221;client;Ville Limay SMARD;;;;;;;;;;;2018-01-25
+12766225;client;Cougnaud;;;;;;;;;;;2018-01-25
+12767226;client;Unibail-Rodamco-Westfield;;;;;;;;;;;2018-01-25
+12770514;client;Algeco Lille;;;;;;;;;;;2018-01-25
+12770515;client;Algeco Paris-Est;;;;;;;;;;;2018-01-25
+12770580;client;AUTODIS Distributeur agr̩̩ TOYOTA;;;;;;;;;;;2018-01-25
+12770614;client;Boulanger Osny;;;;;;;;;;;2018-01-25
+12770639;client;Caisse Epargne Rhone Alpes;;;;;;;;;;;2018-01-25
+12770711;client;Darty Arcueil;;;;;;;;;;;2018-01-25
+12770714;client;Darty Cergy Pontoise;;;;;;;;;;;2018-01-25
+12770718;client;Darty Compi̬gne;;;;;;;;;;;2018-01-25
+12770721;client;Darty L'isle d'Adam;;;;;;;;;;;2018-01-25
+12770722;client;Darty La D̩fense;;;;;;;;;;;2018-01-25
+12770725;client;Darty Les Ulis;;;;;;;;;;;2018-01-25
+12770726;client;Darty Madeleine;;;;;;;;;;;2018-01-25
+12770728;client;Darty Parinor;;;;;;;;;;;2018-01-25
+12770729;client;Darty Parly II;;;;;;;;;;;2018-01-25
+12770744;client;Davril Aménagement;;;;;;;;;;;2018-01-25
+12770758;client;Drac Nord-Pas-De-Calais;;;;;;;;;;;2018-01-25
+12770761;client;Dumez Ile De France;;;;;;;;;;;2018-01-25
+12770774;client;Eiffage Construction Auvergne;;;;;;;;;;;2018-01-25
+12770780;client;Elis;;;;;;;;;;;2018-01-25
+12770782;client;Elogie-siemp;;;;;;;;;;;2018-01-25
+12770785;client;Engie Cofely;;;;;;;;;;;2018-01-25
+12770800;client;Eurovia Aubervilliers;;;;;;;;;;;2018-01-25
+12770855;client;GT Picardie Toyota;;;;;;;;;;;2018-01-25
+12770899;client;Ivertige;;;;;;;;;;;2018-01-25
+12770958;client;LVDH-Aux Merveilleux de Fred;;;;;;;;;;;2018-01-25
+12771090;client;Redstock;;;;;;;;;;;2018-01-25
+12771095;client;Rizzon Automobiles Distributeur Toyota;;;;;;;;;;;2018-01-25
+12771122;client;Siemp;;;;;;;;;;;2018-01-25
+12771130;client;SOGECAP;;;;;;;;;;;2018-01-25
+12771165;client;Cogedim Gestion Secteur Entreprises;;;;;;;;;;;2018-01-25
+12771166;client;Anthelios Bâtiment;;;;;;;;;;;2018-01-25
+12771170;client;Avec Investissement;;;;;;;;;;;2018-01-25
+12771176;client;Bouygues Construction;;;;;;;;;;;2018-01-25
+12771177;client;Bouygues Immobilier;;;;;;;;;;;2018-01-25
+12771180;client;C2 Immobilier L'immobilière de Boulogne;;;;;;;;;;;2018-01-25
+12771182;client;Cazal's Immobilier SARL Gatimmo;Cazalssimmo@wanadoo.fr;;;;;;;;;;2018-01-25
+12771184;client;CBRE Holding;;;;;;;;;;;2018-01-25
+12771191;client;GROUPE IDEC Faubourg Promotion;faubourgpromotion@groupeidec.com;;;;;;;;;;2018-01-25
+12771192;client;CIR Investissement;;;;;;;;;;;2018-01-25
+12771193;client;CMGL Lafayette Restaurant;;;;;;;;;;;2018-01-25
+12771194;client;COFFIM Promoteur;contact@coffim.fr;;;;;;;;;;2018-01-25
+12771202;client;Crédit Agricole Immobilier;;;;;;;;;;;2018-01-25
+12771207;client;DTZ Investors France;;;;;;;;;;;2018-01-25
+12771208;client;Eiffage Immobilier Atlantique;;;;;;;;;;;2018-01-25
+12771209;client;Eiffage Immobilier Mediterran̩e;;;;;;;;;;;2018-01-25
+12771210;client;Eiffage Immobilier Midi-Pyr̩n̩es;;;;;;;;;;;2018-01-25
+12771211;client;Eiffage Immobilier Normandie-Centre;;;;;;;;;;;2018-01-25
+12771215;client;EVOLIS;;;;;;;;;;;2018-01-25
+12771216;client;Fairplay Immobilier;info@fairplay.fr;;;;;;;;;;2018-01-25
+12771217;client;Foncière Asset JURA;;;;;;;;;;;2018-01-25
+12771219;client;Foncière Vauban;;;;;;;;;;;2018-01-25
+12771223;client;Gecina;;;;;;;;;;;2018-01-25
+12771229;client;Groupe Panhard;contact@panhardgroupe.com;;;;;;;;;;2018-01-25
+12771230;client;Groupe Pichet;;;;;;;;;;;2018-01-25
+12771231;client;Pierreval Exploitation;;;;;;;;;;;2018-01-25
+12771241;client;Kariba;;;;;;;;;;;2018-01-25
+12771242;client;Kaufman & Broad;;;;;;;;;;;2018-01-25
+12771248;client;Nexity;;;;;;;;;;;2018-01-25
+12771249;client;CELIZE;;;;;;;;;;;2018-01-25
+12771252;client;Pierreval Ingénierie;morgane.minier-rouille@pierreval.com;;;;;;;;;;2018-01-25
+12771261;client;SAS Toison d'Or;;;;;;;;;;;2018-01-25
+12771263;client;SCI Puteaux Valmy Nexity SEERI;;;;;;;;;;;2018-01-25
+12771266;client;Severini Pierres & Loisirs;contact@severini.com;;;;;;;;;;2018-01-25
+12771273;client;Syndicat des copropriétés des 4 Temps C/O Espace Expansion;;;;;;;;;;;2018-01-25
+12789284;client;Château Troplong Mondot;;;;;;;;;;;2018-01-27
+12790543;client;Les ateliers de Saint-Germain;;;;;;;;;;;2018-01-27
+12802455;client;ATELIER DES GIBOULEES;bonjour@giboulees.com;;;;;;;;;;2018-01-28
+12802512;client;Agglo Etampois Sud-Essonne;;;;;;;;;;;2018-01-28
+12802532;client;COLAS FRANCE;;;;;;;;;;;2018-01-28
+12882302;client;TTR CONSTRUCTIONS;;;;;;;;;;;2018-01-30
+12894075;client;Eiffage Construction Grands Projets;;;;;;;;;;;2018-01-30
+13018502;client;Spring Velizy;;;;;;;;;;;2018-02-02
+13054423;client;SIVIA'M;;;;;;;;;;;2018-02-05
+13054460;client;Mairie Aubergenville;;;;;;;;;;;2018-02-05
+13054474;client;Eiffage Construction Résidentiel;;;;;;;;;;;2018-02-05
+13054591;client;Université de Liege;;;;;;;;;;;2018-02-05
+13054679;client;SOGEA ILE De France Génie Civil;;;;;;;;;;;2018-02-05
+13054712;client;SITI - SECURITE INTEGREE ET TECH. IND. EUROPE;;;;;;;;;;;2018-02-05
+13054979;client;Eiffage Construction Centre Est;;;;;;;;;;;2018-02-05
+13055185;client;Mairie Soissons;;;;;;;;;;;2018-02-05
+13057177;client;Aliuta;;;;;;;;;;;2018-02-06
+13060219;client;MRB COUVERTURE;;;;;;;;;;;2018-02-06
+13076492;client;Eiffage Construction Tertiaire;;;;;;;;;;;2018-02-08
+13078481;client;SOCIETE GERSOISE DE RESTAURATION DU PATRIMOINE;;;;;;;;;;;2018-02-08
+13129867;client;Pierre Promotion;;;;;;;;;;;2018-02-14
+13190556;client;Ramery Travaux Publics;;;;;;;;;;;2018-02-19
+13205730;client;SNC - Pitch Promotion;;;;;;;;;;;2018-02-20
+13453262;client;Eiffage Génie Civil;;;;;;;;;;;2018-03-15
+13459762;client;SCCV Les Villas Olonna;;;;;;;;;;;2018-03-15
+13489304;client;SNTPP;;;;;;;;;;;2018-03-19
+13729617;client;Roche Bobois;;;;;;;;;;;2018-04-05
+13832196;client;Groupama Gan Vie;;;;;;;;;;;2018-04-11
+13840760;client;Mairie La Courneuve;;;;;;;;;;;2018-04-12
+13921799;client;ESPRIMM;;;;;;;;;;;2018-04-19
+13972428;client;CABRE SA;;;;;;;;;;;2018-04-24
+13972518;client;SCCV Jeanne d'Arc;;;;;;;;;;;2018-04-24
+13972677;client;SCCV Fresnes Daix;;;;;;;;;;;2018-04-24
+13972691;client;SCCV Pasteur;;;;;;;;;;;2018-04-24
+14010293;client;Air Liquide;;;;;;;;;;;2018-04-30
+14036027;client;Villa Eugénie;;;;;;;;;;;2018-05-03
+14280940;client;Chaumeil;;;;;;;;;;;2018-05-28
+14474004;client;Spie Batignolles Sud-Ouest;;;;;;;;;;;2018-06-14
+14516874;client;GENERALE DE TELEPHONE;;;;;;;;;;;2018-06-21
+14533286;client;H. Chevalier;;;;;;;;;;;2018-06-22
+14724779;client;MLKA;;;;;;;;;;;2018-07-10
+14861749;client;SCCV RUEIL MALMAISON 1;;;;;;;;;;;2018-07-26
+14907759;client;Freyssinet France;;;;;;;;;;;2018-07-31
+15161924;client;Eiffage Construction Poitou Charentes;;;;;;;;;;;2018-08-28
+15175956;client;A.M.T;;;;;;;;;;;2018-08-29
+15266676;client;NACARAT FRANCE TERRE MONTLHERY;;;;;;;;;;;2018-09-07
+15540026;client;DI Environnement;;;;;;;;;;;2018-10-02
+15669675;client;SOGEA TRAVAUX PUBLICS ILE DE FRANCE;;;;;;;;;;;2018-10-16
+15818617;client;EDELIS;;;;;;;;;;;2018-10-24
+15945965;client;SPL Rueil Aménagement;;;;;;;;;;;2018-11-06
+15951762;client;YEEELS / 24 GV;;;;;;;;;;;2018-11-07
+15961668;client;Doyère Démolition;;;;;;;;;;;2018-11-07
+16074706;client;URBAN RENAISSANCE DEVELOPPEMENT;;;;;;;;;;;2018-11-16
+16653832;client;SCCV Puteaux 2;;;;;;;;;;;2018-12-17
+17063037;client;VINCI ASSOCIES;;;;;;;;;;;2019-01-21
+17079029;client;SUSHI CHANTILLY;;;;;;;;;;;2019-01-22
+17141816;client;AXHO DEVELOPPEMENT;;;;;;;;;;;2019-01-24
+17272401;client;SCCV les jardins de Maryges;;;;;;;;;;;2019-02-01
+17342065;client;SCCV MERIGNAC L'INITIALE;;;;;;;;;;;2019-02-06
+17393245;client;LEFAURE ET RIGAUD MACONNERIE;;;;;;;;;;;2019-02-11
+17395255;client;Ecole et Collège Saint Philippe Néri;;;;;;;;;;;2019-02-11
+17503066;client;Eurovia Ile-de-France Mitry-Mory;;;;;;;;;;;2019-02-20
+17634703;client;HEURGON JOAILLIER;;;;;;;;;;;2019-02-26
+17659369;client;Rene Caovilla France;;;;;;;;;;;2019-02-27
+17964748;client;SCCV LIVRY SCHUMAN;;;;;;;;;;;2019-03-04
+17975464;client;Woodeum SAS;;;;;;;;;;;2019-03-04
+18021303;client;ART BOULEVARD;;;;;;;;;;;2019-03-08
+18024141;client;SCCV NACARAT JOUY EN JOSAS ARCHIPEL 1;;;;;;;;;;;2019-03-08
+18067441;client;SCCV NANTERRE JOFFRE;;;;;;;;;;;2019-03-12
+18094450;client;Carrefour BAB2;;;;;;;;;;;2019-03-12
+18238404;client;GVI BASTIAT BAYONNE;;;;;;;;;;;2019-03-22
+18428019;client;Transdev Group;;;;;;;;;;;2019-04-03
+18492513;client;Muses design;;;;;;;;;;;2019-04-04
+18532810;client;CREPERIE DE PONT AVEN;;;;;;;;;;;2019-04-05
+18567986;client;Les Grillades de Buenos Aires;;;;;;;;;;;2019-04-09
+18739974;client;SCI VILLA POMME DE PIN;;;;;;;;;;;2019-04-16
+18852167;client;Aqua Ray;;;;;;;;;;;2019-04-26
+18930701;client;EUROFLOR CREATIONS;;;;;;;;;;;2019-04-30
+18937740;client;SCCV ALEXANDRE 1ER;;;;;;;;;;;2019-05-02
+18937761;client;CLOS D'ARNOULT II;;;;;;;;;;;2019-05-02
+18937908;client;SCCV PREFERENCE;;;;;;;;;;;2019-05-02
+19079694;client;SCCV EPINAY JOFFRE;;;;;;;;;;;2019-05-07
+19324478;client;SCCV Champagne Bourgogne;;;;;;;;;;;2019-05-23
+19348663;client;SCCV Carré Plaisance;;;;;;;;;;;2019-05-27
+19373561;client;SCCV SUCY CLOS SEVIGNE;;;;;;;;;;;2019-05-29
+19375213;client;PHILEOG ELEVEN SA;;;;;;;;;;;2019-05-29
+19532027;client;CHENPI VISUAL - Pano Sign Service Lons le Saunier;;;;;;;;;;;2019-06-14
+19547556;client;DANIEL POUSSIER;;;;;;;;;;;2019-06-17
+19595395;client;MBCP;;;;;;;;;;;2019-06-20
+20083151;client;SCCV ARMENTIERES BLUM;;;;;;;;;;;2019-08-14
+20084379;client;IBA Basel;;;;;;;;;;;2019-08-14
+20137397;client;RAISMES CLAIE;;;;;;;;;;;2019-08-26
+20142145;client;QUODAM;;;;;;;;;;;2019-08-27
+20302879;client;COMMUNE DE CHALONNES-SUR-LOIRE;;;;;;;;;;;2019-09-12
+20406740;client;ATLAND;marketing@atland.fr;;;;;;;;;;2019-09-22
+20412983;client;GSB Legendre Construction;;;;;;;;;;;2019-09-23
+20413990;client;SCCV VILLEBON BALTIQUE;;;;;;;;;;;2019-09-23
+20484557;client;ADOUR COTE BASQUE LOCATION;;;;;;;;;;;2019-09-27
+20556120;client;LEAVICWIN;;;;;;;;;;;2019-10-01
+20615206;client;CBRE CONSEIL & TRANSACTION;;;;;;;;;;;2019-10-03
+20693214;client;OMNILOCA;;;;;;;;;;;2019-10-10
+20880272;client;ICEBERG;;;;;;;;;;;2019-10-25
+20887876;client;SCCV SIGNATURE;;;;;;;;;;;2019-10-25
+20924725;client;SNC TOURS ALBERT;;;;;;;;;;;2019-10-30
+20925134;client;SCCV COUBERT JAURES;;;;;;;;;;;2019-10-30
+21156391;client;RATP REAL ESTATE;;;;;;;;;;;2019-11-19
+21170856;client;GTA NOISY;;;;;;;;;;;2019-11-20
+21264313;client;Algeco Rouen;;;;;;;;;;;2019-11-29
+21269407;client;Agilis;;;;;;;;;;;2019-11-29
+21344810;client;SCCV VAYRES SUDRE;;;;;;;;;;;2019-12-03
+21515750;client;NOVAXIA;contact@novaxia.fr;;;;;;;;;;2019-12-16
+21582010;client;Legendre Project;;;;;;;;;;;2019-12-20
+21582098;client;Legendre Construction;;;;;;;;;;;2019-12-20
+22024707;client;L&P IMMOBILIER;;;;;;;;;;;2020-01-17
+22024740;client;SCCV 12 DANTON;;;;;;;;;;;2020-01-17
+22411974;client;ELLE ASSURE 83;;;;;;;;;;;2020-01-24
+22422230;client;Vinci Autoroutes;;;;;;;;;;;2020-01-27
+22459132;client;COMMUNE DE RAMBOUILLET;;;;;;;;;;;2020-01-28
+22518725;client;Kompan;;;;;;;;;;;2020-01-31
+22534462;client;SAGE ENGINEERING;academy@sage.com;;;;;;;;;;2020-02-03
+24092418;client;SCI FI MONTIGNY MANET;;;;;;;;;;;2020-05-15
+24092422;client;SCI FI MONTIGNY PLOUGASTEL;;;;;;;;;;;2020-05-15
+24168412;client;MEAUX PREVERT;;;;;;;;;;;2020-05-20
+24303017;client;SAS BG 140;;;;;;;;;;;2020-05-28
+24303624;client;CAISSE PRIMAIRE ASSURANCE MALADIE PARIS;;;;;;;;;;;2020-05-28
+24440753;client;SCCV NEUILLY GUERINIERE;;;;;;;;;;;2020-06-05
+24577354;client;EpaMarne;;;;;;;;;;;2020-06-12
+24579871;client;ATELIERS DE FRANCE;;;;;;;;;;;2020-06-12
+24665938;client;CHAMPIGNY 106 STALINGRAD;;;;;;;;;;;2020-06-15
+24760183;client;COMMUNE DE NERON;;;;;;;;;;;2020-06-18
+24772461;client;LTE CONSTRUCTION;;;;;;;;;;;2020-06-19
+24864453;client;NIO 3 IMMO 3;;;;;;;;;;;2020-06-23
+25125403;client;DAGNEUX COTTEY;;;;;;;;;;;2020-07-10
+25239592;client;COMMUNE DE CLAMECY;;;;;;;;;;;2020-07-21
+25240754;client;SCCV CONFLANS DESIRE CLEMENT;;;;;;;;;;;2020-07-21
+25246010;client;MADAME CLAUDINE DRAI;;;;;;;;;;;2020-07-21
+25325805;client;BLANC MESNIL FLOQUET;;;;;;;;;;;2020-07-29
+25328741;client;FEDI - FONCIERE ET DEVELOPPEMENT INGENIERIE;;;;;;;;;;;2020-07-29
+25558012;client;CENTRE EVENEMENTIEL ET CULTUREL;;;;;;;;;;;2020-08-21
+25705112;client;CELASTRO PROD;info@celastro.com;;;;;;;;;;2020-08-30
+25863506;client;Sully Immobilier;;;;;;;;;;;2020-09-09
+26062063;client;SNC KAUFMAN & BROAD PROMOTION 6;;;;;;;;;;;2020-09-18
+26304559;client;PREMIUM PROMOTION;;;;;;;;;;;2020-10-05
+26314587;client;IVRY CONLUENCES 2J2;;;;;;;;;;;2020-10-06
+26357444;client;SERI BORDEAUX- SOCIETE D'EQUIPEMENTS ROUTIERS ET INDUSTRIELS;;;;;;;;;;;2020-10-08
+26371221;client;SCCV ST REMY COEUR DE VILLE;;;;;;;;;;;2020-10-09
+26514271;client;SCCV MEUDON - VILLACOUBLAY;;;;;;;;;;;2020-10-20
+26619757;client;Ministère de la Culture;;;;;;;;;;;2020-10-26
+26682727;client;SNC KAUFMAN & BROAD PROMOTION 1;;;;;;;;;;;2020-10-28
+26784933;client;SAS JAURES 97;;;;;;;;;;;2020-11-03
+26875052;client;SCCV SERRIS MAGELLAN;;;;;;;;;;;2020-11-09
+26875195;client;COMMUNE DE PIERREFITTE-SUR-SEINE;;;;;;;;;;;2020-11-09
+27303776;client;Nexity Immobilier Résidentiel Programme Rhone Loire Auvergne;;;;;;;;;;;2020-11-26
+27304795;client;SCCV FI VILLEJUIF GORKI;;;;;;;;;;;2020-11-26
+27319076;client;LAGARDERE & CONNEXIONS;;;;;;;;;;;2020-11-27
+27343828;client;BERTRAND RETAIL NORD OUEST;;;;;;;;;;;2020-11-30
+27344538;client;BERTRAND RETAIL SUD EST;;;;;;;;;;;2020-11-30
+27344664;client;BERTRAND RETAIL CENTRE OUEST;;;;;;;;;;;2020-11-30
+27344706;client;BERTRAND RETAIL NORD EST;;;;;;;;;;;2020-11-30
+27350632;client;WO2;;;;;;;;;;;2020-11-30
+27390040;client;SCCV BAGNOLET GRAINDORGE;;;;;;;;;;;2020-12-02
+27425956;client;SCCV VILLIERS MONTMARTRE;;;;;;;;;;;2020-12-04
+27593902;client;Transdev Group Innovation;;;;;;;;;;;2020-12-11
+27711040;client;KAUFMAN & BROAD EST;;;;;;;;;;;2020-12-18
+27737334;client;Nexity Tours;;;;;;;;;;;2020-12-21
+27760854;client;LAGARDERE TRAVEL RETAIL FRANCE;;;;;;;;;;;2020-12-23
+27845485;client;SNC KAUFMAN & BROAD PROMOTION 5;;;;;;;;;;;2021-01-04
+27912835;client;COMMUNE DE PORNICHET;;;;;;;;;;;2021-01-06
+28216417;client;Mairie d'Annecy;evenements.culturels@annecy.fr;;;;;;;;;;2021-01-21
+28231000;client;Icade Promotion;;;;;;;;;;;2021-01-21
+28293281;client;SCCV TOURCOING DOUAY;;;;;;;;;;;2021-01-26
+28295256;client;SCI STRASBOURG-STARLETTE QUAI VAUBAN;;;;;;;;;;;2021-01-26
+28312245;client;COMMUNE DE TREMBLAY EN FRANCE;;;;;;;;;;;2021-01-27
+28396848;client;INSTITUT CATHOLIQUE DE PARIS;;;;;;;;;;;2021-01-31
+28431537;client;SNC AER 2;;;;;;;;;;;2021-02-02
+28480457;client;COMMUNE DE LIVRY GARGAN;;;;;;;;;;;2021-02-05
+28620234;client;RED CONCEPT - Signarama;;;;;;;;;;;2021-02-10
+28681917;client;ERISMA;;;;;;;;;;;2021-02-14
+28765995;client;NEXITY IR PROGRAMMES LOIRE;;;;;;;;;;;2021-02-15
+28886557;client;SCCV FONTAINEBLEAU 177 RUE GRANDE;;;;;;;;;;;2021-02-19
+29087392;client;SCI ARKADEA LYON GIRONDINS;;;;;;;;;;;2021-02-24
+29191746;client;SCI SAVIGNY SUR ORGE 8-10 BOULEVARD ARISTIDE BRIAND;;;;;;;;;;;2021-03-01
+29599129;client;SADE - COMPAGNIE GENERALE DE TRAVAUX HYDRAULIQUES;;;;;;;;;;;2021-03-10
+29861768;client;SCCV PONTAULT COMBAULT 65A73 RUE DE LA LIBERATION;;;;;;;;;;;2021-03-16
+29882254;client;LES 2 MARES;;;;;;;;;;;2021-03-16
+29887109;client;SCCV ASTRE;;;;;;;;;;;2021-03-17
+30196225;client;SCCV MONTROUGE 17 VICTOR HUGO;;;;;;;;;;;2021-04-06
+30631678;client;ANJOU TOURISME;;;;;;;;;;;2021-04-21
+31375276;client;SCCV VILLEURBANNE 25-29 RUE FREDERIC FAYS;;;;;;;;;;;2021-05-19
+31387319;client;EIFFAGE DEMOLITION NORD;;;;;;;;;;;2021-05-20
+31427308;client;SCI LEVALLOIS CHAPTAL;;;;;;;;;;;2021-05-25
+31537263;client;COMMUNE DE JOINVILLE LE PONT;;;;;;;;;;;2021-05-31
+31907939;client;SAS KAUFMAN AND BROAD PROMOTION 8;;;;;;;;;;;2021-06-14
+32134595;client;CA VAL PARISIS;;;;;;;;;;;2021-06-23
+32221157;client;ELYPSO;;;;;;;;;;;2021-06-30
+32447819;client;COSPIRIT;;;;;;;;;;;2021-07-12
+32740264;client;SCCV AR LOUIS XIV;;;;;;;;;;;2021-07-26
+32885834;client;COMMUNE DE PESSAC;;;;;;;;;;;2021-08-02
+33288139;client;KAUFMAN & BROAD RHONE-ALPES;;;;;;;;;;;2021-09-08
+33289526;client;LA PEPINIERE;;;;;;;;;;;2021-09-08
+33312796;client;Brussels Major Events;;;;;;;;;;;2021-09-10
+33331535;client;ALKERN FRANCE;;;;;;;;;;;2021-09-13
+34123326;client;SCCV Méridien;;;;;;;;;;;2021-10-05
+34433340;client;SCCV ATLAND CHILLY MAZARIN;;;;;;;;;;;2021-10-22
+34488799;client;ATLAND RESIDENTIEL;;;;;;;;;;;2021-10-25
+34855422;client;Bioburger Bateliers;;;;;;;;;;;2021-11-09
+35325353;client;SEDA;;;;;;;;;;;2021-12-08
+36320155;client;SEQENS SOCIETE ANONYME D'HABITATIONS A LOYER MODERE;;;;;;;;;;;2022-01-14
+36328930;client;SCCV DES RIVES DU PETIT CHER LOT 2;;;;;;;;;;;2022-01-14
+36438326;client;SCCV ATLAND SARTROUVILLE JAURES;;;;;;;;;;;2022-01-21
+36636999;client;ERT CONSTRUCTION;;;;;;;;;;;2022-02-02
+36694685;client;L ATELIER RICHELIEU;;;;;;;;;;;2022-02-07
+36720368;client;SCI F ATLAND STAINS ROL-TANGUY;;;;;;;;;;;2022-02-08
+36742978;client;MATHIS;;;;;;;;;;;2022-02-09
+36747344;client;UN PAS VERS LA VIE;;;;;;;;;;;2022-02-09
+36874695;client;SNC KAUFMAN & BROAD PROMOTION 3;;;;;;;;;;;2022-02-17
+36875128;client;SCCV ATLAND CHEVREUSE VERSAILLES;;;;;;;;;;;2022-02-17
+36878450;client;SOC IMMOB LOGEMENT DE L'EURE SA HLM;;;;;;;;;;;2022-02-17
+36936741;client;CITADIS;;;;;;;;;;;2022-02-21
+37090424;client;CUSHMAN & WAKEFIELD DESIGN + BUILD FRANCE;;;;;;;;;;;2022-02-27
+37368514;client;EMINENCE INTERNATIONAL;;;;;;;;;;;2022-03-10
+37371111;client;SURFACES CONSULTING;;;;;;;;;;;2022-03-10
+37399178;client;IN'LI;;;;;;;;;;;2022-03-14
+37420562;client;DREAMSTONES LIMITED;;;;;;;;;;;2022-03-15
+37504847;client;DGB CONSTRUCTION;;;;;;;;;;;2022-03-18
+37556631;client;KAUFMAN &BROAD MIDI-PYRENEES;;;;;;;;;;;2022-03-21
+37666222;client;SAS VILLEURBANNE ANATOLE;;;;;;;;;;;2022-03-29
+37678075;client;Spazio Novateur d'Espaces;;;;;;;;;;;2022-03-29
+37700170;client;SA LA RENAISSANCE;;;;;;;;;;;2022-03-31
+37705123;client;SCI LA ROCHELLE - 29 AV DU CHAMP DE MARS;;;;;;;;;;;2022-03-31
+37892254;client;SNC KAUFMAN & BROAD PROMOTION 4;;;;;;;;;;;2022-04-14
+37916931;client;SNC KAUFMAN & BROAD PROMOTION 7;;;;;;;;;;;2022-04-19
+37954748;client;ARCADE-VYV PROMOTION IDF;;;;;;;;;;;2022-04-21
+38066844;client;SCCV MONTROUGE 121 REPUBLIQUE;;;;;;;;;;;2022-04-27
+38100640;client;SCCV L'AMALIA;;;;;;;;;;;2022-04-28
+38143798;client;SCCV COGOLIN RUE DU 19 MARS 1962;;;;;;;;;;;2022-05-02
+38182909;client;COMMUNE DE ECOUEN;;;;;;;;;;;2022-05-05
+38230241;client;SCI GALILEE-DEFENSE;;;;;;;;;;;2022-05-08
+38500768;client;DS IMPRESSION;;;;;;;;;;;2022-05-24
+38509744;client;ATLAND VERNOUILLET TRIEL;;;;;;;;;;;2022-05-25
+38595500;client;HENNEBONT LE QUIMPERO;;;;;;;;;;;2022-06-01
+38606860;client;ARPAJON JAURES;;;;;;;;;;;2022-06-01
+38618441;client;GUIDEL PRAT FOEN;;;;;;;;;;;2022-06-02
+38626658;client;SNC SBI OPERATIONS;;;;;;;;;;;2022-06-02
+38839553;client;LIMOGE REVILLON;;;;;;;;;;;2022-06-17
+38869314;client;SCCV ST JEAN DE BRAYE - LE LUSCINIA;;;;;;;;;;;2022-06-21
+39043851;client;VIBE ARCHITECTS;;;;;;;;;;;2022-06-28
+39062414;client;DISTRIBUTION FRANPRIX;;;;;;;;;;;2022-06-29
+39065710;client;ECLISSE PROMOTION;;;;;;;;;;;2022-06-29
+39439179;client;SDEL.TRAVAUX EXTERIEURS ILE DE FRANCE;;;;;;;;;;;2022-07-13
+39447094;client;PRO POSE SERVICES;;;;;;;;;;;2022-07-13
+39507549;client;ETF;;;;;;;;;;;2022-07-18
+39698295;client;PARC PIERREVAL AUBERGENVILLE;;;;;;;;;;;2022-07-25
+39835409;client;SCCV AR PYRENEES;;;;;;;;;;;2022-08-02
+40105758;client;SCCV DES RIVES DU PETIT CHER LOT 4;;;;;;;;;;;2022-08-23
+40229287;client;PREMIUM ST MARTIN;;;;;;;;;;;2022-08-31
+40280351;client;EIFFAGE CONSTRUCTION NORD PAS DE CALAIS;;;;;;;;;;;2022-09-01
+40280819;client;HOPITAL SAINT CAMILLE;;;;;;;;;;;2022-09-01
+40322694;client;COMMUNE DE BUSSY ST GEORGES;;;;;;;;;;;2022-09-05
+40505357;client;SMB CONSTRUCTION;;;;;;;;;;;2022-09-15
+40512300;client;ATLAND LE PLESSIS-ROBINSON DESCARTES;;;;;;;;;;;2022-09-15
+40589270;client;ADF PARIS;;;;;;;;;;;2022-09-19
+40655173;client;ECCODEC - ECOLOGIE - CONSTRUCTION - DECONSTRUCTION;biry.sylla@eccodec.com;;;;;;;;;;2022-09-22
+40665304;client;CABAX;;;;;;;;;;;2022-09-22
+40724198;client;SCCV AN2-CHAMPS SUR MARNE;;;;;;;;;;;2022-09-26
+40835438;client;SPLNA / SOCIETE PUBLIQUE LOCALE DE LA VILLE DE NANTERRE;;;;;;;;;;;2022-09-29
+41200039;client;CELDOM Paris;;;;;;;;;;;2022-10-13
+41214835;client;SAINT-HERBLAIN MASSACRE;;;;;;;;;;;2022-10-14
+41487497;client;COGELUM IDF;comptabilite.citeosgrandsprojets@citeos.com;;;;;;;;;;2022-10-27
+41576238;client;CELDOM;;;;;;;;;;;2022-11-02
+41719012;client;EIFFAGE ENERGIE SYSTEMES - CENTRE LOIRE;clement.bequier@eiffage.com;;;;;;;;;;2022-11-08
+41793066;client;BEC CONSTRUCTION CHAMPAGNE;;;;;;;;;;;2022-11-10
+42099881;client;COMMUNE DAMMARIE LES LYS;;;;;;;;;;;2022-11-25
+42122684;client;ETRECHY LES HAUTES PRASLES;;;;;;;;;;;2022-11-27
+42122686;client;AUNEAU-BLEURY HELENE BOUCHER;;;;;;;;;;;2022-11-27
+42381269;client;LES PETITES CRECHES;;;;;;;;;;;2022-12-04
+42390194;client;URBAINE DE TRAVAUX;;;;;;;;;;;2022-12-05
+42484056;client;ZACHARIE AGENCEMENT;;;;;;;;;;;2022-12-08
+42627950;client;JUVISY COUR DE FRANCE;;;;;;;;;;;2022-12-12
+42768183;client;PARAY VERDUN 2;;;;;;;;;;;2022-12-20
+43004753;client;ASRESEAU13;;;;;;;;;;;2023-01-04
+43326432;client;OXY SIGNALETIQUES;;;;;;;;;;;2023-01-18
+43332816;client;EDYS Construction;;;;;;;;;;;2023-01-19
+44009822;client;Ville de Gland;;;;;;;;;;;2023-02-07
+44149514;client;VINCI CONSTRUCTION MARITIME ET FLUVIAL;;;;;;;;;;;2023-02-13
+44184548;client;ECO.URBAIN SPL;;;;;;;;;;;2023-02-15
+44301911;client;SARL V.M.A. CONSTRUCTION;;;;;;;;;;;2023-02-22
+44446039;client;SCCV VGD;;;;;;;;;;;2023-02-24
+44551978;client;SCCV GELLAINVILLE CHARTRES;;;;;;;;;;;2023-02-28
+44736495;client;SNC VILLA CANO;;;;;;;;;;;2023-03-07
+44925189;client;SCCV MOIRANS LA GARE;;;;;;;;;;;2023-03-15
+45115835;client;ECO.URBAIN SEM;;;;;;;;;;;2023-03-23
+45327585;client;CAMPUS;;;;;;;;;;;2023-04-04
+45333506;client;POITIERS RECTEUR PINEAU;;;;;;;;;;;2023-04-04
+45772224;client;ASSOC HACHOMER HATZAIR;;;;;;;;;;;2023-04-27
+46205562;client;ST PIERRE DES CORPS - LES EPINES FORTES;;;;;;;;;;;2023-05-23
+46239725;client;SOGEA ILE DE FRANCE;;;;;;;;;;;2023-05-25
+46360765;client;FI SAINT-OUEN PICASSO LOT B;;;;;;;;;;;2023-05-31
+46436847;client;SO-MA-TER;;;;;;;;;;;2023-06-06
+47360102;client;AXIMUM;;;;;;;;;;;2023-07-21
+47627319;client;COMMUNE D ABLON SUR SEINE;;;;;;;;;;;2023-07-28
+47897569;client;DONGES LES CLOS GALANTS;;;;;;;;;;;2023-08-02
+47897692;client;BESANCON FRANCAIS;;;;;;;;;;;2023-08-02
+47897825;client;LA VILLE AUX DAMES;;;;;;;;;;;2023-08-02
+47898063;client;LOROUX LIOTTERIE;;;;;;;;;;;2023-08-02
+47898246;client;ALFORTVILLE VERON;;;;;;;;;;;2023-08-02
+48269051;client;EIFFAGE ENERGIE SYSTEMES - INFRA RHONE ALPES;;;;;;;;;;;2023-08-30
+48276434;client;ARTIS-AGENCEMENT RENOVATION TRAVAUX INTERIEUR SPECIFIQUE;;;;;;;;;;;2023-08-30
+48311509;client;SAINT JACQUES HOTEL ET CONGRES - SJHC;;;;;;;;;;;2023-09-01
+48383649;client;EIFFAGE ENERGIE SYSTEMES - INFRA RHONE ALPES;;;;;;;;;;;2023-09-04
+48443034;client;LA REGIE DU THEATRE LE FORUM DE FREJUS-SAINT-RAPHAEL;;;;;;;;;;;2023-09-07
+48507346;client;JOLS GROUPE;;;;;;;;;;;2023-09-11
+48583742;client;AXIONE;;;;;;;;;;;2023-09-18
+48731736;client;SCCV ORLY LES ROSES;;;;;;;;;;;2023-09-27
+48864845;client;MONTPELLIER LODEVE;;;;;;;;;;;2023-10-02
+49310696;client;AmplitudebyGalivel;;;;;;;;;;;2023-10-18
+49430782;client;LE CELLIER DU PIC;;;;;;;;;;;2023-10-23
+49475482;client;ERQUY VIADUC;;;;;;;;;;;2023-10-26
+49492709;client;FARENIS;;;;;;;;;;;2023-10-26
+49782792;client;OCELIAN;;;;;;;;;;;2023-11-10
+50151766;client;SCCV DONGES LES HERLAINS;;;;;;;;;;;2023-11-27
+50152140;client;SCCV CONTAMINE ANNEMASSE;;;;;;;;;;;2023-11-27
+50187055;client;PARTENOPE-GUSTO Paris 9;;;;;;;;;;;2023-11-28
+50296451;client;COMMUNAUTE DE COMMUNES BAYEUX INTERCOM;;;;;;;;;;;2023-12-04
+50552367;client;AES FRANCE;;;;;;;;;;;2023-12-14
+51674764;client;COMMUNE DE CHECY;;;;;;;;;;;2024-01-25
+51794534;client;VILLE DE BAYEUX;;;;;;;;;;;2024-01-31
+51896937;client;VISUAL SOLUTIONS;;;;;;;;;;;2024-02-06
+52075344;client;Impression 360 TEAM CAJB;;;;;;;;;;;2024-02-14
+52266198;client;SOCIETE PUBLIQUE LOCALE PARIS & METROPOLE AMENAGEMENT;;;;;;;;;;;2024-02-22
+52491158;client;CENTRE CHOREGRAPHIQUE NATIONAL DE LA ROCHELLE;;;;;;;;;;;2024-02-29
+52532460;client;BOUYGUES ENERGIES & SERVICES;;;;;;;;;;;2024-02-29
+52767988;client;METROPOLE;;;;;;;;;;;2024-03-15
+53087737;client;AMBASSADE DES ETATS UNIS D AMERIQUE;;;;;;;;;;;2024-03-24
+53186021;client;LES DIFFUSEURS REUNIS;;;;;;;;;;;2024-03-29
+54311815;client;FINADORM;;;;;;;;;;;2024-05-10
+54644305;client;COMMUNAUTE DE COMMUNES DU BASSIN DE POMPEY;;;;;;;;;;;2024-05-27
+54910180;client;SOCIETE NOUVELLE GENERATION TRAVAUX;;;;;;;;;;;2024-05-31
+55527971;client;COMMUNE DE SEVRES;;;;;;;;;;;2024-06-25
+55976322;client;SYNDICAT MIXTE LES ABATTOIRS;;;;;;;;;;;2024-07-10
+56977401;client;STEPLING;;;;;;;;;;;2024-07-31
+57062490;client;THE PLACE TO BE;;;;;;;;;;;2024-08-05
+57121396;client;SIGIDURS - SYND MIXTE GESTION INCINERAT DECHETS;;;;;;;;;;;2024-08-08
+57608482;client;MUSEE YVES SAINT LAURENT - PARIS;;;;;;;;;;;2024-09-02
+57781813;client;SERVICES ENSEIGNES SIGNALETIQUES;;;;;;;;;;;2024-09-06
+57921410;client;ITHERM SA;dg@ataritherm.fr;;;;;;;;;;2024-09-16
+57921412;client;COMMUNE D'ANGERS;;;;;;;;;;;2024-09-17
+57921446;client;MAITRE CUBE;;;;;;;;;;;2024-09-24
+57921457;client;SEM DU PAYS DE FONTAINEBLEAU;;;;;;;;;;;2024-10-11
+57921595;client;Luminiscence;;;;;;;;;;;2024-12-23
+57921612;client;SCCV LE DAUPHIN;;;;;;;;;;;2025-01-29
+57921613;client;Y H M CONSTRUCTION;;;;;;;;;;;2025-01-29
+57921618;client;SAINKO;;;;;;;;;;;2025-02-05
+57921624;client;FMD;;;;;;;;;;;2025-02-11
+57921639;client;SOCIETE DE CONFORTEMENT ET DE RENOVATION BATIMENT (SCRB);;;;;;;;;;;2025-02-27
+57921686;client;MLA-MG (LeGroup);;;;;;;;;;;2025-03-26
+57921695;client;ECO-MARQUAGE;;;;;;;;;;;2025-04-03
+57921706;client;Algeco Chartres;;;;;;;;;;;2025-04-14
+57921712;client;CA SAINT LOUIS AGGLOMERATION;;;;;;;;;;;2025-04-16
+57921715;client;The Good Start / Brand Addict;;;;;;;;;;;2025-04-22
+57921727;client;ADS - Domaine Skiable Les Arcs/Peisey-Vallandry;;;;;;;;;;;2025-04-25
+57921736;client;LES ARCS BOURG SAINT MAURICE TOURISME (EN ABREGE : ABT);;;;;;;;;;;2025-05-13
+57921741;client;EXHIBITION HUB;;;;;;;;;;;2025-05-23
+57921748;client;COMMUNE DE VIRY CHATILLON;;;;;;;;;;;2025-06-03
+57921753;client;ESSOR LES MONTS;;;;;;;;;;;2025-06-06
+57921759;client;DRYADE CREATIONS;;;;;;;;;;;2025-06-12
+57921760;client;ENTREPRISE DE TRAVAUX FAYOLLE ET FILS;;;;;;;;;;;2025-06-13
+57921775;client;MARK PARIS URBAN REGENERATION GP;;;;;;;;;;;2025-07-09
+57921784;client;DK GROUP;;;;;;;;;;;2025-07-22
+57921787;client;SNEF;;;;;;;;;;;2025-07-28
+57921793;client;DK PRINTING;;;;;;;;;;;2025-08-04
+57921838;client;PATINE / SMILEV;;;;;;;;;;;2025-09-04
+57921847;client;MPUS RETAIL;;;;;;;;;;;2025-09-12
+57921848;client;CHANTIERS MODERNES NOUVELLE AQUITAINE;;;;;;;;;;;2025-09-16
+57921873;client;POISSYNERGIE;;;;;;;;;;;2025-10-15
+57921875;client;CHROME HEARTS PARIS LLC;;;;;;;;;;;2025-10-17
+57921949;client;ABC X COFFEE ROASTERS LLC;info@abc-roasters.com;;;;;;;;;;2026-01-27
+57921983;client;SURPRISE LTD;;;;;;;;;;;2026-02-09
+57921986;client;MND FRANCE;;;;;;;;;;;2026-02-13
+57921991;client;SCPI IMMORENTE;;;;;;;;;;;2026-02-24
+57921992;client;Zéphyr Monaco;;;;;;;;;;;2026-02-24
+57922000;client;OURAN;;;;;;;;;;;2026-03-05

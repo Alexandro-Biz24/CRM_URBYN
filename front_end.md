@@ -1,0 +1,12 @@
+Dans le cadre du devloppement d'un CRM hand made, tu verra dans ce projet un dossier backend ou il y une DB Postgre SQL hosté sur Neon et versionné avec Alembic, tu peux voir les differnete table et lien dans le dossier /models. Tu trouvera aussi dans ce dossier backen un dossier /app qui contient tout otre definition d'API fastAPI et des routes API qui vont nou spermettre toutes les interaction avec la DB (ajout de produit ou de compte modofiication de champs ou recupération de donné pour faire des grpahs etc etc)
+
+Ton role en tant qu'Agent frontend c'ets de me devlopper des set de pages pour chaque fonctionnalité que je souhaite implémenté dans un basket d'application que notre groupe devloppe, qui se baseront toutes sur la meme DB centrale. 
+
+Donc je vais te demander de me faire dasn un nouveau dossier /frontend des pages d'un site sans parler de style prédéfinie pour le moment hein, ce que j'attend c'ets de voir selon mes demande une interface utilisateur a chaque fois pour tester dans un prmeier temps tt la DBe t les routes API que j'ai créer. Pour donc tester tout ça donc il faut que tu me fasse des pages qui vont venir créer des configirations par exemple et faire un appel a l'api pour aller update la DB tu vois l'idée ? les routes existe je veux un front qui me permette de tester comem si j'etais un utilisateur et voir le retour ou une fois que ça a été fait je vais regarder dans ma db sur Neon si ça a bien fait ce que j'attendais etc ok ? 
+J'attends peut etre du react et une facon claire et reproductible pour la prod d ese connecter et de traiter certian output (car il y a de sroute qui serve a renvoyer des json pour afficher des graphs etc donc il faudra des pages surmentn en react poru voir des viz stylé quoi ok ? )
+
+si tu as des question avant qu'on commence a travail dis moi, dis moi aussi si c'ets bien claire ! 
+
+ATTENTION EN AUCUN CAS TU NE TOUCHE AU BACKEND TU NE MODIFIER JAMAIS RIEN TU NE PEUX QUE CONSULTER LE CODE POUR VOIR COMMENT LES ROUTES SONT FAITE ETUDIER LES SORTIE PORU LES TRAITER CORRECTEMENT ETC ETC D'ACCORD ? 
+
+tu a le champs libre sur l'organisation et l'architecture du front end dans le dossier 'frontend' c'ets tout tu es mon agent de frontend dev 

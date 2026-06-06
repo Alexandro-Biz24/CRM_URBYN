@@ -1,0 +1,1348 @@
+[
+  {
+    "id": 52841969,
+    "date": "2025-12-22",
+    "created": "2025-12-23T14:57:38+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 52075344
+      },
+      {
+        "type": "opportunity",
+        "id": 11142624
+      }
+    ],
+    "number": "FC_00001",
+    "amounts": {
+      "total_raw_excl_tax": "2500.00",
+      "total_after_discount_excl_tax": "2500.00",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "2500.00",
+      "total_incl_tax": "3000.00",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/6Z1Ft8e"
+    },
+    "file_id": 217023073,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJUIyJUM2JUNFJTBEJTJDJTlFJTlBeVIxdCVCNHdFJUIxaiVFNSU4NSVDRiVGQyU4QiUwM1N4JTJDdCVEQiUyMyVFQyVFRFAlODglRTclRjZUJUVFJUMyJTAzJTAxJTdEJTE1YiUyQiVBRSVFMCUwQiU1QzJWJThGJTI1JUNCMSVFNTlaWiVGM3QlMDglMUIlOUUlREUlMDg==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "500.00"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153946,
+    "subject": "78-Impression 360-Carrière sous Poissy-Palissade Acquisition-202511-OPP-03276",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227989944,
+    "delivery_address_id": 202819202,
+    "issuer_address_id": 227989945,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": null,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "Impression 360 TEAM CAJB",
+    "analytic_code": "divers",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": false
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2025-12-23",
+    "parent": {
+      "type": "estimate",
+      "id": 52841966
+    },
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 85523,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": 2606215,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52841973,
+    "date": "2025-12-23",
+    "created": "2025-12-23T16:32:59+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57921873
+      },
+      {
+        "type": "opportunity",
+        "id": 11142422
+      }
+    ],
+    "number": "FC_00002",
+    "amounts": {
+      "total_raw_excl_tax": "4774.76",
+      "total_after_discount_excl_tax": "4774.76",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "4774.76",
+      "total_incl_tax": "5729.71",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/UWdEg4y"
+    },
+    "file_id": 217023414,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJUY0bSVDNSUwQSU4QiUyQ0wlMEMlQTAlMEV3ViU5N3ElQzUlMEElMTMlMTRQJUZDJTQwJTVCJTEwJUREJTQwJUU0JTdFJUY1JUY4JTA3KyVDOCVFNyVGNlQlRUUlQzIlMDMlMDElN0QlMTViJTJCJUFFJUUwJTBCJTVDMlYlOEYlMjUlQ0IxJUU1OVpaJUYzdCUwOCUxQiU5RSVERSUwOA==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "954.95"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153946,
+    "subject": "78-Essor Group-Poissy-Dynamikum-202505-OPP-03106",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227989307,
+    "delivery_address_id": 227989307,
+    "issuer_address_id": 227989960,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": null,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "<u>Lieu d'intervention</u>: <br />7 Avenue de Pontoise<br />POISSY 78300<br />",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "POISSYNERGIE",
+    "analytic_code": "divers",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-01-22",
+    "parent": {
+      "type": "order",
+      "id": 52841972
+    },
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267589,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": 2606215,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52841981,
+    "date": "2026-01-16",
+    "created": "2026-01-16T16:42:18+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57921875
+      },
+      {
+        "type": "opportunity",
+        "id": 11142586
+      }
+    ],
+    "number": "FC_00003",
+    "amounts": {
+      "total_raw_excl_tax": "5770.00",
+      "total_after_discount_excl_tax": "5770.00",
+      "total_packaging": "0.00",
+      "total_shipping": "150.00",
+      "total_excl_tax": "5920.00",
+      "total_incl_tax": "7104.00",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/lfMOoPX"
+    },
+    "file_id": 217023344,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJTdCOSVDQyVENyUzRSVDNCVBRiVBRmtLJUE4JUFBYSVCN3glRjAlNUMlRDIlMjMlNUMlOEElMUIlRjklN0MlOUMlQTAlOTQlQjglRTklRjAlM0MlQ0ElRTclRjZUJUVFJUMyJTAzJTAxJTdEJTE1YiUyQiVBRSVFMCUwQiU1QzJWJThGJTI1JUNCMSVFNTlaWiVGM3QlMDglMUIlOUUlREUlMDg==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "1184.00"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "75-Chrome Hearts-Paris-Lower + Upper window stickers-202510-OPP-03238",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227989402,
+    "delivery_address_id": 227989403,
+    "issuer_address_id": 227989998,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": null,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "CHROME HEARTS PARIS LLC",
+    "analytic_code": "divers",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-02-15",
+    "parent": {
+      "type": "estimate",
+      "id": 52841976
+    },
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1189,
+    "layout_id": 70566,
+    "bank_account_id": 267590,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": 2606215,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842020,
+    "date": "2026-01-27",
+    "created": "2026-01-27T18:33:01+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 12755018
+      },
+      {
+        "type": "opportunity",
+        "id": 11142638
+      },
+      {
+        "type": "contact",
+        "id": 57877907
+      }
+    ],
+    "number": "FC_00004",
+    "amounts": {
+      "total_raw_excl_tax": "9995.00",
+      "total_after_discount_excl_tax": "9995.00",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "9995.00",
+      "total_incl_tax": "11994.00",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/FH386Lr"
+    },
+    "file_id": 217023383,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJUYyJUYzJUREJUY4WiVFMi0lQ0QlMkElQzNYJTg4JUI0OCUxNkYlMjUlMUIlRTQlQkJHJUI0JTExaSU5RmIlQUYlRkQlRkQlODIwJUYwJUU3JUY2VCVFRSVDMiUwMyUwMSU3RCUxNWIlMkIlQUUlRTAlMEIlNUMyViU4RiUyNSVDQjElRTU5WlolRjN0JTA4JTFCJTlFJURFJTA4==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "1999.00"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "92-PLD-La Défense-10 Totem-202412-OPP-03290",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 35796730,
+    "delivery_address_id": 35796730,
+    "issuer_address_id": 227990068,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": 57877907,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "Lieu d'intervention: Paris La Défense<br />",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "PLD",
+    "company_name": "Paris La Défense",
+    "analytic_code": "divers",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-01-28",
+    "parent": {
+      "type": "order",
+      "id": 52842015
+    },
+    "order_reference": "202600191",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": 2606215,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842028,
+    "date": "2026-02-03",
+    "created": "2026-02-03T16:28:44+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 12759902
+      },
+      {
+        "type": "opportunity",
+        "id": 11142635
+      },
+      {
+        "type": "contact",
+        "id": 57877896
+      }
+    ],
+    "number": "FC_00005",
+    "amounts": {
+      "total_raw_excl_tax": "4160.00",
+      "total_after_discount_excl_tax": "4160.00",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "4160.00",
+      "total_incl_tax": "4992.00",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/o3eiLGa"
+    },
+    "file_id": 217023508,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJUUzdSUyOSVFRSVCOCVEQSVFMCU4MjZZJTgwNyVBMSUyQiVCMSU4NSU4MCU5QSUyQSVBOFkwbSVCMyVFQSVCMiVDNyVCRCVDNiVFMSVFMCUxMSVFNyVGNlQlRUUlQzIlMDMlMDElN0QlMTViJTJCJUFFJUUwJTBCJTVDMlYlOEYlMjUlQ0IxJUU1OVpaJUYzdCUwOCUxQiU5RSVERSUwOA==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "832.00"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "60-Commune-Nogent sur Oise-Habillage Chantier-202512-OPP-03287",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 35816213,
+    "delivery_address_id": 227990097,
+    "issuer_address_id": 227989936,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": 57877896,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "COMMUNE DE NOGENT SUR OISE",
+    "analytic_code": "divers",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-03-05",
+    "parent": {
+      "type": "order",
+      "id": 52842016
+    },
+    "order_reference": "BC2026/26GRP000636",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "debit",
+    "vat_mention": "TVA exigible sur les débits",
+    "eco_tax_id": 2606215,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842031,
+    "date": "2026-02-04",
+    "created": "2026-02-04T14:43:20+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57921949
+      },
+      {
+        "type": "opportunity",
+        "id": 11142674
+      }
+    ],
+    "number": "FC_00006",
+    "amounts": {
+      "total_raw_excl_tax": "13517.13",
+      "total_after_discount_excl_tax": "13517.13",
+      "total_packaging": "0.00",
+      "total_shipping": "600.00",
+      "total_excl_tax": "14117.13",
+      "total_incl_tax": "16940.56",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/12hmDgm"
+    },
+    "file_id": 217023327,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJUUxJTFEJUNBJUM5JUNBJTg5WSUwRSUyNSU4MCU1QyU5QSVFQiVEQmttJTk3JURCJTAyJUU1JTAzJURCRCU3QyVBQiU4ODMlMUJPJTkxJUQ0JUQwJUU3JUY2VCVFRSVDMiUwMyUwMSU3RCUxNWIlMkIlQUUlRTAlMEIlNUMyViU4RiUyNSVDQjElRTU5WlolRjN0JTA4JTFCJTlFJURFJTA4==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "2823.43"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "98-ABC Coffee-Monaco-Mareterra Pelliculage NUIT BAS-202601-OPP-03294",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227990074,
+    "delivery_address_id": 227990074,
+    "issuer_address_id": 227990104,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": null,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "<u>Lieu d'intervention</u>:<br />Quai du Petit Portier, Mareterra – 98000 Monaco",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "ABC X COFFEE ROASTERS LLC",
+    "analytic_code": "divers",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-03-06",
+    "parent": {
+      "type": "estimate",
+      "id": 52842029
+    },
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": 2606215,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842069,
+    "date": "2026-02-13",
+    "created": "2026-02-13T16:09:51+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57921983
+      },
+      {
+        "type": "opportunity",
+        "id": 11142711
+      },
+      {
+        "type": "contact",
+        "id": 57877988
+      }
+    ],
+    "number": "FC_00007",
+    "amounts": {
+      "total_raw_excl_tax": "1408.60",
+      "total_after_discount_excl_tax": "1408.60",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "1408.60",
+      "total_incl_tax": "1690.32",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/1L0VhUQ"
+    },
+    "file_id": 217023361,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJTJDJTFEJUUzJUQwJUZBJTg2OCVFRmQlQkMlQjcyJTlEJUU5MCUwMyUyMiUzRWclM0YlRURVaiUxQiVFNUVzViVEOSU5RSU5NiUxOSVFNyVGNlQlRUUlQzIlMDMlMDElN0QlMTViJTJCJUFFJUUwJTBCJTVDMlYlOEYlMjUlQ0IxJUU1OVpaJUYzdCUwOCUxQiU5RSVERSUwOA==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "281.72"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "75-Surprise-Paris-Habillage-202602-OPP-03299",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227990137,
+    "delivery_address_id": 227990137,
+    "issuer_address_id": 227990161,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": 57877988,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "<u>Lieu d'intervention</u>: 11 Rue Debelleyme, 75003 Paris, France<br />",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "SURPRISE LTD",
+    "analytic_code": "divers",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-03-15",
+    "parent": {
+      "type": "order",
+      "id": 52842068
+    },
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": 2606215,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842085,
+    "date": "2026-03-04",
+    "created": "2026-03-04T17:29:30+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57921992
+      },
+      {
+        "type": "opportunity",
+        "id": 11142720
+      },
+      {
+        "type": "contact",
+        "id": 57877999
+      }
+    ],
+    "number": "FC_00008",
+    "amounts": {
+      "total_raw_excl_tax": "702.20",
+      "total_after_discount_excl_tax": "702.20",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "702.20",
+      "total_incl_tax": "842.64",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/wsKscpA"
+    },
+    "file_id": 217023420,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJTk1JUVGeCU4MiU4RCUyOCVGMiVCNCVCMCVERSUxOFIlRTUlMEYlOTklQkUlRDclMTFaJTFGYUElMTUlQTclQ0QlODclQjRTJUMwJTkzYiU4OSVFNyVGNlQlRUUlQzIlMDMlMDElN0QlMTViJTJCJUFFJUUwJTBCJTVDMlYlOEYlMjUlQ0IxJUU1OVpaJUYzdCUwOCUxQiU5RSVERSUwOA==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "140.44"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "98-Zephyr-Monaco-Film-202602-OPP-03308",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227990207,
+    "delivery_address_id": 227990207,
+    "issuer_address_id": 227989936,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": 57877999,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "Zéphyr Monaco",
+    "analytic_code": "OPP-03308",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-04-03",
+    "parent": {
+      "type": "estimate",
+      "id": 52842074
+    },
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "collection",
+    "vat_mention": null,
+    "eco_tax_id": null,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842086,
+    "date": "2026-03-05",
+    "created": "2026-03-05T10:02:42+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57922000
+      }
+    ],
+    "number": "FC_00009",
+    "amounts": {
+      "total_raw_excl_tax": "1760.00",
+      "total_after_discount_excl_tax": "1500.00",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "1500.00",
+      "total_incl_tax": "1800.00",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/PjiJJgq"
+    },
+    "file_id": 217023449,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJTFEJTNFJUNBJUQ4JUU0VyVGRSUyNyUxQiU4RCU5OVIuJTg2RSUyMjQlQzAlRjBhJUNFJUU5JTg3JTI5JUREb0olOUElRjMlOTQlNUIlQTQlRTclRjZUJUVFJUMyJTAzJTAxJTdEJTE1YiUyQiVBRSVFMCUwQiU1QzJWJThGJTI1JUNCMSVFNTlaWiVGM3QlMDglMUIlOUUlREUlMDg==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "300.00"
+      }
+    ],
+    "discount": {
+      "percent": "14.77",
+      "amount": "260.00",
+      "type": "amount"
+    },
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "Accompagnement",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227990266,
+    "delivery_address_id": 227990266,
+    "issuer_address_id": 227989936,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": null,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "OURAN",
+    "analytic_code": "divers",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-04-04",
+    "parent": null,
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": null,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "collection",
+    "vat_mention": null,
+    "eco_tax_id": null,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842087,
+    "date": "2026-03-05",
+    "created": "2026-03-05T17:29:48+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57921983
+      },
+      {
+        "type": "opportunity",
+        "id": 11142711
+      },
+      {
+        "type": "contact",
+        "id": 57877988
+      }
+    ],
+    "number": "FC_00010",
+    "amounts": {
+      "total_raw_excl_tax": "1108.60",
+      "total_after_discount_excl_tax": "1108.60",
+      "total_packaging": "0.00",
+      "total_shipping": "300.00",
+      "total_excl_tax": "1408.60",
+      "total_incl_tax": "1690.32",
+      "total_remaining_due_incl_tax": "1690.32",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/uTHOrAY"
+    },
+    "file_id": 217023416,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJUJGJUY1JUFFJTNGJUE1JTk1JTBGJUY0JUZFJUE2JTEzJUE3NSVBNyVFMjclQjVDQU4lMjYlRkQlOEYlRjVDXyU5OEclMjglOERVJTVFJUU3JUY2VCVFRSVDMiUwMyUwMSU3RCUxNWIlMkIlQUUlRTAlMEIlNUMyViU4RiUyNSVDQjElRTU5WlolRjN0JTA4JTFCJTlFJURFJTA4==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "281.72"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "75-Surprise-Paris-Habillage-202602-OPP-03299",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227990137,
+    "delivery_address_id": 227990137,
+    "issuer_address_id": 227990274,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": 57877988,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "<u>Lieu d'intervention</u>: 11 Rue Debelleyme, 75003 Paris, France<br />",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "SURPRISE LTD",
+    "analytic_code": "divers",
+    "status": "late",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-04-04",
+    "parent": {
+      "type": "estimate",
+      "id": 52842064
+    },
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "collection",
+    "vat_mention": null,
+    "eco_tax_id": null,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842089,
+    "date": "2026-03-08",
+    "created": "2026-03-08T16:47:53+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57921986
+      },
+      {
+        "type": "opportunity",
+        "id": 11142713
+      }
+    ],
+    "number": "FC_00011",
+    "amounts": {
+      "total_raw_excl_tax": "699.26",
+      "total_after_discount_excl_tax": "699.26",
+      "total_packaging": "0.00",
+      "total_shipping": "900.00",
+      "total_excl_tax": "1599.26",
+      "total_incl_tax": "1919.11",
+      "total_remaining_due_incl_tax": "1919.11",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/VCudj8X"
+    },
+    "file_id": 217023431,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFSyU5N2lMZiUxQyUwOSU4MCUzQnklRUFpJTdCJURCJTI1bSVFMCVGNCVEQiVGREMlMTglRTlNOSVFMCU4NiU4OEclQzYlRjglQjclRTclRjZUJUVFJUMyJTAzJTAxJTdEJTE1YiUyQiVBRSVFMCUwQiU1QzJWJThGJTI1JUNCMSVFNTlaWiVGM3QlMDglMUIlOUUlREUlMDg==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "319.85"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "73-MND-Sainte Hélène du Lac-Massif-202602-OPP-03301",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227990170,
+    "delivery_address_id": 227990170,
+    "issuer_address_id": 227989936,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": null,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "<u>Lieu de livraison</u>:<br />MND FRANCE<br />PARC D ACTIVITE ALPES ESPACES<br />516 VOIE VASCO DE GAMA<br />73800 STE HELENE DU LAC<br />Téléphone: +33 (0)4 79 65 08 90<br />Date de livraison souhaitée: 26 Mars 2026<br /><br />Prévenir le service logistique 48h à l’avance sur le mail <a href=\"mailto:reception@mnd.com\">reception@mnd.com</a><br /><br /><br />N° de Commande: 4500042808<br />Date de commande : 06.03.2026<br />",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "4400.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "MND FRANCE",
+    "analytic_code": "OPP-03301",
+    "status": "due",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-04-07",
+    "parent": {
+      "type": "estimate",
+      "id": 52842070
+    },
+    "order_reference": "",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": null,
+    "payment_method_ids": [
+      2594055,
+      2594057
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842101,
+    "date": "2026-03-19",
+    "created": "2026-03-19T12:25:58+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 57921991
+      },
+      {
+        "type": "opportunity",
+        "id": 11142719
+      }
+    ],
+    "number": "FC_00012",
+    "amounts": {
+      "total_raw_excl_tax": "2926.00",
+      "total_after_discount_excl_tax": "2926.00",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "2926.00",
+      "total_incl_tax": "3511.20",
+      "total_remaining_due_incl_tax": "3511.20",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/019d05d8-6858-714c-ad2c-442e0cbb7fbe-db9c"
+    },
+    "file_id": 217023505,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJUE1JTkxJThEJURBJTg5JUFFJUFBWDFCZiU5MiVGNCUxNiUwQyVDNSUwOCVGQiVBQiUyMUE2JUE0JTBBJUE3WCUwMyU5OSUxRiUwRFolQ0MlRTclRjZUJUVFJUMyJTAzJTAxJTdEJTE1YiUyQiVBRSVFMCUwQiU1QzJWJThGJTI1JUNCMSVFNTlaWiVGM3QlMDglMUIlOUUlREUlMDg==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "585.20"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "92-Immorente-Saint Cloud-Habillage Palissade-202602-OPP-03307",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 227990203,
+    "delivery_address_id": 227990203,
+    "issuer_address_id": 227989936,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": null,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "<strong>Adresse du chantier</strong>: <br />165/185boulevard de la République<br />92210 Saint-Cloud<br />",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "SCPI IMMORENTE",
+    "analytic_code": "OPP-03307",
+    "status": "due",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-04-18",
+    "parent": {
+      "type": "order",
+      "id": 52842100
+    },
+    "order_reference": "2026/01469",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "collection",
+    "vat_mention": null,
+    "eco_tax_id": null,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842105,
+    "date": "2026-03-25",
+    "created": "2026-03-25T14:57:35+01:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 12759902
+      },
+      {
+        "type": "opportunity",
+        "id": 11142635
+      },
+      {
+        "type": "contact",
+        "id": 57877896
+      }
+    ],
+    "number": "FC_00013",
+    "amounts": {
+      "total_raw_excl_tax": "2200.00",
+      "total_after_discount_excl_tax": "2200.00",
+      "total_packaging": "0.00",
+      "total_shipping": "0.00",
+      "total_excl_tax": "2200.00",
+      "total_incl_tax": "2640.00",
+      "total_remaining_due_incl_tax": "0.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/019d2549-6c3d-7348-a147-6e0e9326c861-db9c"
+    },
+    "file_id": 217023554,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFJUMzJTEwJUEwJTdCJTJGJUEwaCVGMCUyMSU4NCUyOSUxRFAlQTQlMkYlQkFIJTBBdWMlN0YlQUMlQkUlQkUlOTVQTyVCMiVFRSUwN24lQTIlRTclRjZUJUVFJUMyJTAzJTAxJTdEJTE1YiUyQiVBRSVFMCUwQiU1QzJWJThGJTI1JUNCMSVFNTlaWiVGM3QlMDglMUIlOUUlREUlMDg==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "440.00"
+      }
+    ],
+    "discount": null,
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "60-Commune-Nogent sur Oise-Habillage Chantier-202512-OPP-03287",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 35816213,
+    "delivery_address_id": 227990358,
+    "issuer_address_id": 227989936,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": 57877896,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "BC: BC2026/26GRP000636",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "",
+    "company_name": "COMMUNE DE NOGENT SUR OISE",
+    "analytic_code": "OPP-03287",
+    "status": "paid",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-04-24",
+    "parent": {
+      "type": "estimate",
+      "id": 52841975
+    },
+    "order_reference": "BC2026/26GRP000636",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": null,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  },
+  {
+    "id": 52842115,
+    "date": "2026-04-03",
+    "created": "2026-04-03T22:59:40+02:00",
+    "related": [
+      {
+        "type": "company",
+        "id": 12755018
+      },
+      {
+        "type": "opportunity",
+        "id": 11142638
+      },
+      {
+        "type": "contact",
+        "id": 57877907
+      }
+    ],
+    "number": "FC_00014",
+    "amounts": {
+      "total_raw_excl_tax": "9805.00",
+      "total_after_discount_excl_tax": "9395.00",
+      "total_packaging": "0.00",
+      "total_shipping": "600.00",
+      "total_excl_tax": "9995.00",
+      "total_incl_tax": "11994.00",
+      "total_remaining_due_incl_tax": "11994.00",
+      "total_primes_incl_tax": "0.00"
+    },
+    "currency": "EUR",
+    "public_link": {
+      "enabled": true,
+      "url": "https://sellsy.link/019d5525-072d-70ff-a420-331dcc24eebb-db9c"
+    },
+    "file_id": 217023563,
+    "pdf_link": "https://file.sellsy.com/?id=JUE0JTdDJTlBMkNsJTg2ZCUzQiVGQSUwNTglNUIlQkMlQjYlQTUlOEMlQjYlMTAlMDElQzYlRDIlQjklM0UzJTAwJTdEUVpMViVGMSVBMiVERiUyQiVCQyU2MEglM0VRJUNDJTNETS0lMjglOEQlQzIlODNIX2NFJURGJUM5JTkyJTFCeDYlRjUlOTQlRDklRkYlOTVFaSVBMCUxNSVERiUyQiVCNCUwM0slN0Q4S0RGciUxNDIlOTMlNUR0dXglOUQlRkIlOEIlRjlqJUFEJTA4JUU4JTE3JUM0TSVFNyVGNlQlRUUlQzIlMDMlMDElN0QlMTViJTJCJUFFJUUwJTBCJTVDMlYlOEYlMjUlQ0IxJUU1OVpaJUYzdCUwOCUxQiU5RSVERSUwOA==&key=e6ea817c4deb5c5b02da3b1148e7a8fe&display=Y",
+    "taxes": [
+      {
+        "label": "TVA",
+        "id": 2594025,
+        "rate": "20",
+        "amount": "1999.00"
+      }
+    ],
+    "discount": {
+      "percent": "4.18",
+      "amount": "410.00",
+      "type": "amount"
+    },
+    "owner": {
+      "id": 93426,
+      "type": "staff"
+    },
+    "fiscal_year_id": 153947,
+    "subject": "92-PLD-La Défense-10 Totem-202412-OPP-03290",
+    "assigned_staff_id": 93426,
+    "invoicing_address_id": 35796730,
+    "delivery_address_id": 35796730,
+    "issuer_address_id": 227990398,
+    "decimal_number": {
+      "main": 2,
+      "quantity": 2,
+      "unit_price": 2
+    },
+    "contact_id": 57877907,
+    "rate_category_id": 107243,
+    "service_dates": null,
+    "note": "Lieu d'intervention: Paris La Défense<br />",
+    "shipping_weight": {
+      "unit": "kg",
+      "value": "0.00"
+    },
+    "shipping_volume": "0.00",
+    "company_reference": "PLD",
+    "company_name": "Paris La Défense",
+    "analytic_code": "OPP-03290",
+    "status": "due",
+    "payment_conditions_acceptance": {
+      "enabled": true
+    },
+    "is_deposit": false,
+    "is_progress_invoice": false,
+    "due_date": "2026-05-03",
+    "parent": {
+      "type": "estimate",
+      "id": 52841980
+    },
+    "order_reference": "202600191",
+    "subscription_id": null,
+    "is_sent_to_accounting": true,
+    "shipping_date": null,
+    "lang_id": 1598,
+    "layout_id": 78844,
+    "bank_account_id": 267590,
+    "vat_mode": "debit",
+    "vat_mention": null,
+    "eco_tax_id": null,
+    "payment_method_ids": [
+      2594055
+    ],
+    "check_label_id": 2594065
+  }
+]

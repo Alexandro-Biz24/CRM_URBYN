@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DOCU API URBYN</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #fff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #9996dc;
+      --border: #e2e8f0;
+      --code-bg: #f1f5f9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    header {
+      background: linear-gradient(135deg, #312e81, #4f46e5);
+      color: #fff;
+      padding: 2rem 1.5rem;
+    }
+    header h1 { margin: 0 0 0.35rem; font-size: 1.75rem; }
+    header p { margin: 0; opacity: 0.9; max-width: 720px; }
+    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+    nav.toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    nav.toc a { color: var(--accent); text-decoration: none; }
+    nav.toc ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    h2 { margin: 0 0 0.75rem; font-size: 1.2rem; color: #0f172a; }
+    h3 { margin: 1.25rem 0 0.5rem; font-size: 1rem; }
+    p, li { color: var(--text); }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 0.75rem 0;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--code-bg); font-weight: 600; }
+    code, .route {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem;
+      background: var(--code-bg);
+      padding: 0.12rem 0.35rem;
+      border-radius: 4px;
+    }
+    .route { display: inline-block; word-break: break-all; }
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: #eef2ff;
+      color: #4338ca;
+    }
+    .tag--get { background: #ecfdf5; color: #047857; }
+    .tag--post { background: #eff6ff; color: #1d4ed8; }
+    .tag--put { background: #fffbeb; color: #b45309; }
+    .tag--delete { background: #fef2f2; color: #b91c1c; }
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DOCU API URBYN</h1>
+    <p>
+      Référence pragmatique : chaque page / bouton du front actuel (Vite + React) et la route API
+      correspondante. Base URL : <code>{BASE_URL}</code> + chemin (ex. <code>/api/v1/auth/login</code>).
+    </p>
+  </header>
+
+  <main>
+    <nav class="toc">
+      <strong>Sommaire</strong>
+      <ul>
+        <li><a href="#config">Configuration URL API (front)</a></li>
+        <li><a href="#auth">Connexion &amp; inscription (public)</a></li>
+        <li><a href="#fournisseur">Portail fournisseur</a></li>
+        <li><a href="#catalogues">Offres — catalogues &amp; produits</a></li>
+        <li><a href="#expedition">Expédition</a></li>
+        <li><a href="#paiement">Paiement</a></li>
+        <li><a href="#admin">Administration (URL secrète)</a></li>
+        <li><a href="#swagger">Swagger &amp; intégration front externe</a></li>
+      </ul>
+    </nav>
+
+    <section id="config">
+      <h2>Configuration URL API (front)</h2>
+      <p>Au <strong>démarrage</strong> du front, un seul test <code>GET /health</code> est fait (pas à chaque appel).</p>
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>VITE_API_URL_WEB</code></td>
+            <td>URL Render (prioritaire). Ex. <code>https://crm-urbanize.onrender.com</code></td>
+          </tr>
+          <tr>
+            <td><code>VITE_API_URL_LOCAL</code></td>
+            <td>Fallback si le web ne répond pas. Défaut : <code>http://127.0.0.1:8000</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">Ordre : WEB → LOCAL. Si aucune ne répond, écran d'erreur avec bouton « Réessayer ».</p>
+    </section>
+
+    <section id="auth">
+      <h2>Connexion &amp; inscription — modal auth (site public)</h2>
+      <p class="muted">Route front : ouverture via header « Se connecter ». Pas de route dédiée.</p>
+
+      <h3>Étape identifiants</h3>
+      <table>
+        <thead>
+          <tr><th>Action / bouton</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Soumission formulaire (avant login/signup)</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/auth/check-email?email=</span></td>
+            <td>Vérifie si l'email existe et s'il est vérifié.</td>
+          </tr>
+          <tr>
+            <td><strong>Se connecter</strong> (mode login)</td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/auth/login</span></td>
+            <td>Body : <code>email, password, account_type</code> (<code>buyer</code> ou <code>partner</code>). Retourne session utilisateur.</td>
+          </tr>
+          <tr>
+            <td><strong>Créer un compte</strong> → envoi OTP</td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/auth/signup/start</span></td>
+            <td>Crée compte + envoie code email (5 min).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Étape vérification email (OTP)</h3>
+      <table>
+        <thead>
+          <tr><th>Action</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Valider le code à 6 chiffres</td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/auth/signup/verify</span></td>
+            <td>Body : <code>email, code</code>.</td>
+          </tr>
+          <tr>
+            <td>Renvoyer le code</td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/auth/signup/resend-code</span></td>
+            <td>Body : <code>email, password</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Étape profil (inscription)</h3>
+      <table>
+        <thead>
+          <tr><th>Bouton</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Continuer</strong></td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/auth/onboarding/profile</span></td>
+            <td>Civilité, prénom, nom, téléphone optionnel.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Étape entreprise (fournisseur uniquement)</h3>
+      <table>
+        <thead>
+          <tr><th>Action</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chargement liste sociétés existantes</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/auth/onboarding/companies</span></td>
+            <td>Sociétés déjà en base pour affiliation.</td>
+          </tr>
+          <tr>
+            <td>Recherche entreprise (France)</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/auth/onboarding/company-search?q=</span></td>
+            <td>Autocomplétion nom / SIRET.</td>
+          </tr>
+          <tr>
+            <td><strong>Terminer mon inscription</strong></td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/auth/onboarding/company</span></td>
+            <td>Rattachement société existante (<code>existing_company</code>) ou création (<code>new_company</code> + adresses).</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="fournisseur">
+      <h2>Portail fournisseur — <code>/fournisseur</code></h2>
+      <p class="muted">Session : <code>user_id</code> + <code>email</code> (sessionStorage). Presque toutes les routes portail les exigent en query ou body (<code>session</code>).</p>
+
+      <h3>Accueil fournisseur</h3>
+      <table>
+        <thead>
+          <tr><th>Chargement page</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Affichage nom société</td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/supplier-portal/context</span></td>
+            <td>Body : <code>{ user_id, email }</code> → <code>company_id</code>, <code>company_name</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="catalogues">
+      <h2>Offres — Étape 1 Catalogues <code>/fournisseur/offres/catalogue</code></h2>
+      <table>
+        <thead>
+          <tr><th>Action</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chargement racines (onglet Parcourir)</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/catalogs/roots?user_id&amp;email</span></td>
+            <td>Catalogues racine (arborescence partagée).</td>
+          </tr>
+          <tr>
+            <td>Recherche (≥ 2 caractères)</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/catalogs/search?q=&amp;user_id&amp;email</span></td>
+            <td>Recherche nom / description.</td>
+          </tr>
+          <tr>
+            <td>Sélection sous-niveau</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/catalogs/{id}/children?user_id&amp;email</span></td>
+            <td>Enfants directs d'un catalogue.</td>
+          </tr>
+          <tr>
+            <td><strong>Enregistrer</strong> / <strong>Suivant</strong></td>
+            <td colspan="3">Aucun appel API — enregistre <code>catalogRef</code> en sessionStorage et navigue vers produit.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Offres — Étape 2 Produits <code>/fournisseur/offres/produit</code></h2>
+      <table>
+        <thead>
+          <tr><th>Action / bouton</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chargement liste (mode modifier)</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/products?catalog_ref=&amp;user_id&amp;email</span></td>
+            <td>Produits de la société sur ce catalogue.</td>
+          </tr>
+          <tr>
+            <td>Sélection produit existant</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/products/{id}?user_id&amp;email</span></td>
+            <td>Détail produit + prix courant (historique).</td>
+          </tr>
+          <tr>
+            <td><strong>Enregistrer</strong> / <strong>Terminer</strong> (création)</td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/supplier-portal/products</span></td>
+            <td>Body : <code>session, catalog_ref, client_sku, product_type, price, currency, quantity, …</code>. <code>admin_sku</code> généré côté serveur.</td>
+          </tr>
+          <tr>
+            <td><strong>Enregistrer</strong> / <strong>Terminer</strong> (modification)</td>
+            <td><span class="tag tag--put">PUT</span></td>
+            <td><span class="route">/api/v1/supplier-portal/products/{id}</span></td>
+            <td>Même body ; nouveau prix → ligne dans <code>product_price_history</code>.</td>
+          </tr>
+          <tr>
+            <td>Liste attributs</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/products/{id}/attributes?user_id&amp;email</span></td>
+            <td>Attributs libres du produit.</td>
+          </tr>
+          <tr>
+            <td>Modal <strong>Ajouter</strong> / <strong>Enregistrer</strong> attribut</td>
+            <td><span class="tag tag--post">POST</span> ou <span class="tag tag--put">PUT</span></td>
+            <td><span class="route">…/products/{id}/attributes</span> ou <span class="route">…/attributes/{attr_id}</span></td>
+            <td>CRUD attributs.</td>
+          </tr>
+          <tr>
+            <td><strong>Suppr.</strong> attribut</td>
+            <td><span class="tag tag--delete">DELETE</span></td>
+            <td><span class="route">/api/v1/supplier-portal/products/{id}/attributes/{attr_id}?user_id&amp;email</span></td>
+            <td>Suppression attribut.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="expedition">
+      <h2>Expédition — <code>/fournisseur/expedition</code></h2>
+      <p class="muted">Hub : pas d'API (navigation uniquement).</p>
+
+      <h3>Modifier — choix <code>/expedition/modifier/choix</code></h3>
+      <table>
+        <tr><th>Chargement</th><td><span class="tag tag--get">GET</span> <span class="route">/api/v1/supplier-portal/shipping-rates?user_id&amp;email</span></td></tr>
+        <tr><th><strong>Continuer</strong></th><td>Navigation seule (pas d'API)</td></tr>
+      </table>
+
+      <h3>Étape zones — créer <code>/expedition/creer/zones</code> ou modifier <code>/expedition/modifier/zones</code></h3>
+      <table>
+        <thead>
+          <tr><th>Bouton</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chargement (modifier)</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/shipping-rates/{id}?user_id&amp;email</span></td>
+            <td>Transporteur, zones, actif.</td>
+          </tr>
+          <tr>
+            <td><strong>Enregistrer</strong> / <strong>Suivant</strong> (créer)</td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/supplier-portal/shipping-rates</span></td>
+            <td>Body : <code>session, carrier_name, zone_from, zone_to, is_active</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>Enregistrer</strong> / <strong>Suivant</strong> (modifier)</td>
+            <td><span class="tag tag--put">PUT</span></td>
+            <td><span class="route">/api/v1/supplier-portal/shipping-rates/{id}/zones</span></td>
+            <td>Mise à jour zones.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Étape tarification — <code>/expedition/creer/tarifs</code> ou <code>/modifier/tarifs</code></h3>
+      <table>
+        <thead>
+          <tr><th>Bouton</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chargement</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/shipping-rates/{id}?user_id&amp;email</span></td>
+            <td>Préremplit poids, volume, tarifs.</td>
+          </tr>
+          <tr>
+            <td><strong>Terminer</strong></td>
+            <td><span class="tag tag--put">PUT</span></td>
+            <td><span class="route">/api/v1/supplier-portal/shipping-rates/{id}/pricing</span></td>
+            <td>Body : poids min/max, volume max, tarif/kg, tarif base, devise.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="paiement">
+      <h2>Paiement — <code>/fournisseur/paiement</code></h2>
+      <p class="muted">Hub : pas d'API.</p>
+
+      <h3>Modifier — choix <code>/paiement/modifier/choix</code></h3>
+      <table>
+        <tr><th>Chargement</th><td><span class="tag tag--get">GET</span> <span class="route">/api/v1/supplier-portal/payment-methods?user_id&amp;email</span></td></tr>
+        <tr><th><strong>Continuer</strong></th><td>Navigation seule</td></tr>
+      </table>
+
+      <h3>Étape méthode — créer / modifier</h3>
+      <table>
+        <thead>
+          <tr><th>Bouton</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chargement (modifier)</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/payment-methods/{id}?user_id&amp;email</span></td>
+            <td>Type de méthode.</td>
+          </tr>
+          <tr>
+            <td><strong>Enregistrer</strong> / <strong>Suivant</strong> (créer)</td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/supplier-portal/payment-methods</span></td>
+            <td>Body : <code>session, methode</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>Enregistrer</strong> / <strong>Suivant</strong> (modifier)</td>
+            <td><span class="tag tag--put">PUT</span></td>
+            <td><span class="route">/api/v1/supplier-portal/payment-methods/{id}/methode</span></td>
+            <td>Mise à jour libellé méthode.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Étape banque — <code>/paiement/creer/banque</code> ou <code>/modifier/banque</code></h3>
+      <table>
+        <thead>
+          <tr><th>Bouton</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chargement</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/supplier-portal/payment-methods/{id}?user_id&amp;email</span></td>
+            <td>IBAN, BIC, banque, compte principal.</td>
+          </tr>
+          <tr>
+            <td><strong>Terminer</strong></td>
+            <td><span class="tag tag--put">PUT</span></td>
+            <td><span class="route">/api/v1/supplier-portal/payment-methods/{id}/bank</span></td>
+            <td>Body : <code>iban_number, bic, bank_name, is_primary</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="admin">
+      <h2>Administration — accès URL uniquement (pas de lien public)</h2>
+      <p class="muted">
+        <code>/admin/login</code> → <code>/admin</code> → <code>/admin/catalogues</code>.
+        Auth : variables serveur <code>ADMIN_ID</code> / <code>ADMIN_PWD</code>. Header :
+        <code>Authorization: Bearer {token}</code>.
+      </p>
+
+      <h3>Login <code>/admin/login</code></h3>
+      <table>
+        <tr><th><strong>Se connecter</strong></th><td><span class="tag tag--post">POST</span> <span class="route">/api/v1/admin/login</span> — Body : <code>login, password</code></td></tr>
+      </table>
+
+      <h3>Catalogues admin <code>/admin/catalogues</code></h3>
+      <table>
+        <thead>
+          <tr><th>Action / bouton</th><th>Méthode</th><th>Route API</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chargement arbre</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/admin/catalogs/tree</span></td>
+            <td>Arborescence complète + compteurs.</td>
+          </tr>
+          <tr>
+            <td>Clic nœud</td>
+            <td><span class="tag tag--get">GET</span></td>
+            <td><span class="route">/api/v1/admin/catalogs/{id}</span></td>
+            <td>Détail + fil d'Ariane.</td>
+          </tr>
+          <tr>
+            <td><strong>+ Racine</strong> puis <strong>Enregistrer</strong></td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/admin/catalogs</span></td>
+            <td>Body : <code>name, description, is_active</code> (sans parent).</td>
+          </tr>
+          <tr>
+            <td><strong>+ Enfant</strong> puis <strong>Enregistrer</strong></td>
+            <td><span class="tag tag--post">POST</span></td>
+            <td><span class="route">/api/v1/admin/catalogs</span></td>
+            <td>Body : + <code>parent_id</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>Enregistrer</strong> (édition)</td>
+            <td><span class="tag tag--put">PUT</span></td>
+            <td><span class="route">/api/v1/admin/catalogs/{id}</span></td>
+            <td>Mise à jour nom, description, actif.</td>
+          </tr>
+          <tr>
+            <td><strong>Supprimer</strong></td>
+            <td><span class="tag tag--delete">DELETE</span></td>
+            <td><span class="route">/api/v1/admin/catalogs/{id}</span></td>
+            <td>Feuille uniquement ; supprime aussi les produits du catalogue. Refus si enfants ou commandes liées.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="swagger">
+      <h2>Swagger &amp; front externe (collègue Figma)</h2>
+      <ul>
+        <li>Documentation interactive : <code>{BASE_URL}/docs</code></li>
+        <li>Health check : <code>{BASE_URL}/health</code></li>
+        <li>Préfixe API : <code>/api/v1</code></li>
+        <li>CORS : <code>*</code> (affinage domaines plus tard)</li>
+      </ul>
+      <p>Exemple fetch depuis un autre front :</p>
+      <pre style="background:var(--code-bg);padding:1rem;border-radius:8px;overflow:auto;font-size:0.82rem;"><code>const API = 'https://votre-service.onrender.com';
+
+const res = await fetch(`${API}/api/v1/auth/login`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: '********',
+    account_type: 'partner',
+  }),
+});
+const user = await res.json();</code></pre>
+    </section>
+  </main>
+
+  <footer>
+    CRM Urbanize — DOCU API URBYN — généré pour le front React actuel et l'intégration Render.
+  </footer>
+</body>
+</html>
