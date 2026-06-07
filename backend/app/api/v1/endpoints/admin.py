@@ -17,6 +17,22 @@ from app.services.admin import AdminError
 router = APIRouter()
 
 
+def _accounts_http_error(exc) -> HTTPException:
+    from app.services.admin_accounts import AdminAccountsError
+
+    if not isinstance(exc, AdminAccountsError):
+        raise exc
+    status_code = status.HTTP_400_BAD_REQUEST
+    if exc.code == "not_found":
+        status_code = status.HTTP_404_NOT_FOUND
+    elif exc.code == "has_orders":
+        status_code = status.HTTP_409_CONFLICT
+    return HTTPException(
+        status_code=status_code,
+        detail={"code": exc.code, "message": exc.message},
+    )
+
+
 def _http_error(exc: AdminError) -> HTTPException:
     status_code = status.HTTP_400_BAD_REQUEST
     if exc.code in ("invalid_credentials", "admin_unauthorized"):
@@ -96,3 +112,79 @@ def admin_delete_catalog(
         admin_svc.delete_catalog(db, catalog_id)
     except AdminError as exc:
         raise _http_error(exc) from exc
+
+
+@router.get("/users")
+def admin_list_users(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+):
+    from app.services import admin_accounts as accounts_svc
+
+    return accounts_svc.list_users(db)
+
+
+@router.get("/users/{user_id}")
+def admin_get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+):
+    from app.services import admin_accounts as accounts_svc
+
+    try:
+        return accounts_svc.get_user(db, user_id)
+    except Exception as exc:
+        raise _accounts_http_error(exc) from exc
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def admin_delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> None:
+    from app.services import admin_accounts as accounts_svc
+
+    try:
+        accounts_svc.delete_user(db, user_id)
+    except Exception as exc:
+        raise _accounts_http_error(exc) from exc
+
+
+@router.get("/companies")
+def admin_list_companies(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+):
+    from app.services import admin_accounts as accounts_svc
+
+    return accounts_svc.list_companies(db)
+
+
+@router.get("/companies/{tva_intra_com}")
+def admin_get_company(
+    tva_intra_com: str,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+):
+    from app.services import admin_accounts as accounts_svc
+
+    try:
+        return accounts_svc.get_company(db, tva_intra_com)
+    except Exception as exc:
+        raise _accounts_http_error(exc) from exc
+
+
+@router.delete("/companies/{tva_intra_com}", status_code=status.HTTP_204_NO_CONTENT)
+def admin_delete_company(
+    tva_intra_com: str,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> None:
+    from app.services import admin_accounts as accounts_svc
+
+    try:
+        accounts_svc.delete_company(db, tva_intra_com)
+    except Exception as exc:
+        raise _accounts_http_error(exc) from exc
