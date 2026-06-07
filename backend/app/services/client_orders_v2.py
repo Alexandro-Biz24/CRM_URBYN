@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Product
 from app.repositories import client_orders_v2_repo, product_price_repo
+from app.repositories import suppliers_offers_v2_repo
 from app.schemas.client_orders_v2 import (
     ClientCheckoutCreateV2,
     ClientCheckoutCreatedV2,
@@ -68,11 +69,8 @@ def checkout_client_v2(
                     f"currency commande ({payload.currency}) pour produit {line.product_id}."
                 ),
             )
-        if payload.decrement_stock and product.quantity < line.quantity:
-            raise ClientOrderV2Error(
-                field="items",
-                message=f"Stock insuffisant pour produit {line.product_id}.",
-            )
+        if payload.decrement_stock:
+            pass  # stock retiré du modèle produit (Patch v2)
 
         unit_price = _money(latest.price)
         line_details.append((product.company_tva_intra_com, product, unit_price, line.quantity))
@@ -127,10 +125,18 @@ def checkout_client_v2(
             share = share.quantize(Decimal("0.01"))
             line_total = unit_price * qty + share
 
+            catalog_id = suppliers_offers_v2_repo.get_product_primary_catalog_id(
+                db, product.id
+            )
+            if catalog_id is None:
+                raise ClientOrderV2Error(
+                    field="items",
+                    message=f"Produit {line.product_id} sans catalogue associé.",
+                )
             po = client_orders_v2_repo.create_product_order(
                 db=db,
                 order_id=order.id,
-                catalog_id=product.catalog_ref,
+                catalog_id=catalog_id,
                 product_id=product.id,
                 quantity=qty,
                 unit_price=unit_price,
@@ -141,8 +147,6 @@ def checkout_client_v2(
 
             if payload.decrement_stock:
                 client_orders_v2_repo.decrement_product_stock(db=db, product=product, qty=qty)
-
-        db.refresh(order)
         order_parts.append(
             ClientCheckoutOrderPartV2(
                 order_id=order.id,

@@ -11,6 +11,11 @@ class AdminLoginResponse(BaseModel):
     expires_at: int
 
 
+class AdminAttributeDefinitionOut(BaseModel):
+    id: int
+    attribute_name: str
+
+
 class AdminCatalogNode(BaseModel):
     id: int
     name: str | None
@@ -31,6 +36,7 @@ class AdminCatalogDetail(BaseModel):
     child_count: int
     product_count: int
     breadcrumb: list[str]
+    attribute_definitions: list[AdminAttributeDefinitionOut] = []
 
 
 class AdminCatalogTreeResponse(BaseModel):
@@ -46,9 +52,11 @@ class AdminCatalogWrite(BaseModel):
         None,
         description="Omettre ou null pour une racine ; sinon ID du parent.",
     )
+    attribute_names: list[str] = Field(default_factory=list)
 
 
 class AdminCatalogUpdate(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = Field(..., min_length=1)
     is_active: bool = True
+    attribute_names: list[str] = Field(default_factory=list)

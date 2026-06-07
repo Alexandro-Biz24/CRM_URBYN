@@ -14,10 +14,14 @@ from .company_payment_method import CompanyPaymentMethod
 # Catalog & produits
 from .image import Image
 from .catalog import Catalog
+from .catalog_product import CatalogProduct
+from .catalog_link import CatalogLink
+from .catalog_attribute_definition import CatalogAttributeDefinition
 from .product import Product
 from .product_translation import ProductTranslation
 from .product_price_history import ProductPriceHistory
 from .product_attribut import ProductAttribut
+from .product_mandatory_attribute_value import ProductMandatoryAttributeValue
 
 # Commerce
 from .shipping_rate import ShippingRate

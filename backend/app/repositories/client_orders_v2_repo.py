@@ -91,4 +91,5 @@ def create_product_order(
 
 
 def decrement_product_stock(db: Session, product: Product, qty: int) -> None:
-    product.quantity = max(0, int(product.quantity) - qty)
+    """No-op — le stock n'est plus géré sur products (Patch v2)."""
+    return

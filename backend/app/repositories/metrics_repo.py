@@ -96,15 +96,14 @@ def get_supplier_order_metrics(db: Session, tva_intra_com: str) -> dict:
 
 def get_supplier_stock_metrics(db: Session, tva_intra_com: str) -> dict:
     tva = tva_intra_com.strip()
-    row = db.execute(
-        select(
-            func.count(Product.id),
-            func.coalesce(func.sum(Product.quantity), 0),
-        ).where(Product.company_tva_intra_com == tva)
-    ).one()
-    products_count, stock_total = row
+    products_count = int(
+        db.scalar(
+            select(func.count(Product.id)).where(Product.company_tva_intra_com == tva)
+        )
+        or 0
+    )
     return {
-        "products_count": int(products_count or 0),
-        "stock_total": int(stock_total or 0),
+        "products_count": products_count,
+        "stock_total": 0,
         "stock_reserved": 0,
     }

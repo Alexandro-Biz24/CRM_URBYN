@@ -4,14 +4,18 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import delete, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models import (
     Catalog,
+    CatalogAttributeDefinition,
+    CatalogLink,
+    CatalogProduct,
     Company,
     CompanyUser,
     Product,
     ProductAttribut,
+    ProductMandatoryAttributeValue,
     Role,
     User,
 )
@@ -19,6 +23,7 @@ from app.repositories import product_price_repo
 from app.schemas.supplier_portal import (
     CatalogUpdateBody,
     CatalogWrite,
+    MandatoryAttributeValueWrite,
     ProductAttributWrite,
     ProductWrite,
 )
@@ -26,8 +31,6 @@ from app.schemas.supplier_portal import (
 
 def get_user(db: Session, user_id: int, email: str) -> User | None:
     normalized = email.strip().lower()
-    from sqlalchemy.orm import joinedload
-
     stmt = (
         select(User)
         .options(joinedload(User.role))
@@ -56,9 +59,7 @@ def list_catalogs(db: Session) -> list[Catalog]:
 def list_root_catalogs(db: Session) -> list[Catalog]:
     stmt = (
         select(Catalog)
-        .where(
-            (Catalog.parent_id == Catalog.id) | (Catalog.parent_id.is_(None))
-        )
+        .where((Catalog.parent_id == Catalog.id) | (Catalog.parent_id.is_(None)))
         .order_by(Catalog.name)
     )
     return list(db.scalars(stmt).all())
@@ -94,6 +95,50 @@ def get_catalog(db: Session, catalog_id: int) -> Catalog | None:
     return db.get(Catalog, catalog_id)
 
 
+def _is_root(catalog: Catalog) -> bool:
+    return catalog.parent_id is None or catalog.parent_id == catalog.id
+
+
+def get_breadcrumb(db: Session, catalog: Catalog) -> list[str]:
+    names: list[str] = []
+    current: Catalog | None = catalog
+    seen: set[int] = set()
+    while current is not None and current.id not in seen:
+        seen.add(current.id)
+        if current.name:
+            names.append(current.name)
+        if _is_root(current):
+            break
+        parent = db.get(Catalog, current.parent_id) if current.parent_id else None
+        current = parent
+    names.reverse()
+    return names
+
+
+def list_catalog_attribute_definitions(
+    db: Session, catalog_id: int
+) -> list[CatalogAttributeDefinition]:
+    stmt = (
+        select(CatalogAttributeDefinition)
+        .where(CatalogAttributeDefinition.catalog_id == catalog_id)
+        .order_by(CatalogAttributeDefinition.attribute_name)
+    )
+    return list(db.scalars(stmt).all())
+
+
+def list_attribute_definitions_for_catalogs(
+    db: Session, catalog_ids: list[int]
+) -> list[CatalogAttributeDefinition]:
+    if not catalog_ids:
+        return []
+    stmt = (
+        select(CatalogAttributeDefinition)
+        .where(CatalogAttributeDefinition.catalog_id.in_(catalog_ids))
+        .order_by(CatalogAttributeDefinition.catalog_id, CatalogAttributeDefinition.attribute_name)
+    )
+    return list(db.scalars(stmt).all())
+
+
 def create_catalog(db: Session, data: CatalogWrite) -> Catalog:
     catalog = Catalog(
         parent_id=data.parent_id,
@@ -120,18 +165,105 @@ def update_catalog(db: Session, catalog: Catalog, data: CatalogUpdateBody) -> Ca
     return catalog
 
 
+def get_product_catalog_ids(db: Session, product_id: int) -> list[int]:
+    stmt = select(CatalogProduct.catalog_id).where(CatalogProduct.product_id == product_id)
+    return list(db.scalars(stmt).all())
+
+
+def sync_catalog_products(db: Session, product_id: int, catalog_ids: list[int]) -> None:
+    unique_ids = list(dict.fromkeys(catalog_ids))
+    existing = set(get_product_catalog_ids(db, product_id))
+    target = set(unique_ids)
+    for cid in target - existing:
+        db.add(CatalogProduct(catalog_id=cid, product_id=product_id))
+    for cid in existing - target:
+        db.execute(
+            delete(CatalogProduct).where(
+                CatalogProduct.product_id == product_id,
+                CatalogProduct.catalog_id == cid,
+            )
+        )
+    db.flush()
+
+
+def ensure_catalog_links(db: Session, from_catalog_id: int, to_catalog_ids: list[int]) -> None:
+    for to_id in to_catalog_ids:
+        if to_id == from_catalog_id:
+            continue
+        exists = db.scalar(
+            select(CatalogLink.id).where(
+                CatalogLink.from_catalog_id == from_catalog_id,
+                CatalogLink.to_catalog_id == to_id,
+            )
+        )
+        if exists is None:
+            db.add(CatalogLink(from_catalog_id=from_catalog_id, to_catalog_id=to_id))
+    db.flush()
+
+
+def sync_mandatory_attributes(
+    db: Session,
+    product_id: int,
+    values: list[MandatoryAttributeValueWrite],
+) -> None:
+    by_def = {v.definition_id: v.value.strip() for v in values}
+    existing = list(
+        db.scalars(
+            select(ProductMandatoryAttributeValue).where(
+                ProductMandatoryAttributeValue.product_id == product_id
+            )
+        ).all()
+    )
+    seen_defs: set[int] = set()
+    for row in existing:
+        if row.catalog_attribute_definition_id in by_def:
+            row.value = by_def[row.catalog_attribute_definition_id]
+            row.updated_at = datetime.utcnow()
+            seen_defs.add(row.catalog_attribute_definition_id)
+        else:
+            db.delete(row)
+    for def_id, val in by_def.items():
+        if def_id in seen_defs:
+            continue
+        db.add(
+            ProductMandatoryAttributeValue(
+                product_id=product_id,
+                catalog_attribute_definition_id=def_id,
+                value=val,
+            )
+        )
+    db.flush()
+
+
+def list_mandatory_attribute_values(
+    db: Session, product_id: int
+) -> list[tuple[ProductMandatoryAttributeValue, CatalogAttributeDefinition]]:
+    stmt = (
+        select(ProductMandatoryAttributeValue, CatalogAttributeDefinition)
+        .join(
+            CatalogAttributeDefinition,
+            CatalogAttributeDefinition.id
+            == ProductMandatoryAttributeValue.catalog_attribute_definition_id,
+        )
+        .where(ProductMandatoryAttributeValue.product_id == product_id)
+        .order_by(CatalogAttributeDefinition.catalog_id, CatalogAttributeDefinition.attribute_name)
+    )
+    return list(db.execute(stmt).all())
+
+
 def list_products(
     db: Session,
     company_id: str,
-    catalog_ref: int | None = None,
+    catalog_id: int | None = None,
 ) -> list[tuple[Product, Catalog]]:
     stmt = (
         select(Product, Catalog)
-        .join(Catalog, Catalog.id == Product.catalog_ref)
+        .join(CatalogProduct, CatalogProduct.product_id == Product.id)
+        .join(Catalog, Catalog.id == CatalogProduct.catalog_id)
         .where(Product.company_tva_intra_com == company_id)
     )
-    if catalog_ref is not None:
-        stmt = stmt.where(Product.catalog_ref == catalog_ref)
+    if catalog_id is not None:
+        stmt = stmt.where(CatalogProduct.catalog_id == catalog_id)
     stmt = stmt.order_by(Product.updated_at.desc())
     return list(db.execute(stmt).all())
 
@@ -146,46 +278,35 @@ def get_product(db: Session, company_id: str, product_id: int) -> Product | None
 
 
 def get_product_by_admin_sku(db: Session, admin_sku: str) -> Product | None:
-    return db.scalar(
-        select(Product).where(Product.admin_sku == admin_sku.strip())
-    )
+    return db.scalar(select(Product).where(Product.admin_sku == admin_sku.strip()))
 
 
 def _assign_admin_sku(product: Product) -> None:
     product.admin_sku = f"ADM-{product.id:08d}"
 
 
+def _resolve_catalog_ids(data: ProductWrite) -> list[int]:
+    ids = [data.primary_catalog_id, *data.additional_catalog_ids]
+    return list(dict.fromkeys(ids))
+
+
 def create_product(db: Session, company_id: str, data: ProductWrite) -> Product:
+    catalog_ids = _resolve_catalog_ids(data)
     product = Product(
         admin_sku="PENDING",
-        catalog_ref=data.catalog_ref,
         company_tva_intra_com=company_id,
         client_sku=data.client_sku.strip(),
-        product_type=data.product_type.strip(),
-        quantity=data.quantity,
+        product_name=data.product_name.strip(),
         is_active=data.is_active,
-        teinte=data.teinte,
-        type_de_produit=data.type_de_produit,
-        gamme=data.gamme,
-        duree_garantie=data.duree_garantie,
-        conditions_garantie=data.conditions_garantie,
-        piece_ouvrage_destination=data.piece_ouvrage_destination,
-        traitement_bois_classification=data.traitement_bois_classification,
-        produit_nuance=data.produit_nuance,
-        description_profil=data.description_profil,
-        couleur_traitement_autoclave=data.couleur_traitement_autoclave,
-        code_douane_sh8=data.code_douane_sh8,
-        type_bois=data.type_bois,
-        essence_bois=data.essence_bois,
-        longueur=Decimal(str(data.longueur)) if data.longueur is not None else None,
-        hauteur=Decimal(str(data.hauteur)) if data.hauteur is not None else None,
-        largeur=Decimal(str(data.largeur)) if data.largeur is not None else None,
-        volume=Decimal(str(data.volume)) if data.volume is not None else None,
-        poids_net=Decimal(str(data.poids_net)) if data.poids_net is not None else None,
     )
     db.add(product)
     db.flush()
     _assign_admin_sku(product)
+    sync_catalog_products(db, product.id, catalog_ids)
+    sync_mandatory_attributes(db, product.id, data.mandatory_attributes)
+    ensure_catalog_links(
+        db, data.primary_catalog_id, [c for c in catalog_ids if c != data.primary_catalog_id]
+    )
     product_price_repo.append_price(
         db,
         product_id=product.id,
@@ -197,30 +318,17 @@ def create_product(db: Session, company_id: str, data: ProductWrite) -> Product:
 
 
 def update_product(db: Session, product: Product, data: ProductWrite) -> Product:
-    product.catalog_ref = data.catalog_ref
+    catalog_ids = _resolve_catalog_ids(data)
     product.client_sku = data.client_sku.strip()
-    product.product_type = data.product_type.strip()
-    product.quantity = data.quantity
+    product.product_name = data.product_name.strip()
     product.is_active = data.is_active
-    product.teinte = data.teinte
-    product.type_de_produit = data.type_de_produit
-    product.gamme = data.gamme
-    product.duree_garantie = data.duree_garantie
-    product.conditions_garantie = data.conditions_garantie
-    product.piece_ouvrage_destination = data.piece_ouvrage_destination
-    product.traitement_bois_classification = data.traitement_bois_classification
-    product.produit_nuance = data.produit_nuance
-    product.description_profil = data.description_profil
-    product.couleur_traitement_autoclave = data.couleur_traitement_autoclave
-    product.code_douane_sh8 = data.code_douane_sh8
-    product.type_bois = data.type_bois
-    product.essence_bois = data.essence_bois
-    product.longueur = Decimal(str(data.longueur)) if data.longueur is not None else None
-    product.hauteur = Decimal(str(data.hauteur)) if data.hauteur is not None else None
-    product.largeur = Decimal(str(data.largeur)) if data.largeur is not None else None
-    product.volume = Decimal(str(data.volume)) if data.volume is not None else None
-    product.poids_net = Decimal(str(data.poids_net)) if data.poids_net is not None else None
     product.updated_at = datetime.utcnow()
+
+    sync_catalog_products(db, product.id, catalog_ids)
+    sync_mandatory_attributes(db, product.id, data.mandatory_attributes)
+    ensure_catalog_links(
+        db, data.primary_catalog_id, [c for c in catalog_ids if c != data.primary_catalog_id]
+    )
 
     latest = product_price_repo.get_latest_price(db, product.id)
     new_price = Decimal(str(data.price))

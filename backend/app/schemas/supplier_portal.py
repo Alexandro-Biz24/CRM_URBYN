@@ -18,6 +18,13 @@ class CatalogOut(BaseModel):
     description: str | None
     is_active: bool
     parent_id: int | None
+    breadcrumb: list[str] = Field(default_factory=list)
+
+
+class CatalogAttributeDefinitionOut(BaseModel):
+    id: int
+    catalog_id: int
+    attribute_name: str
 
 
 class CatalogWrite(BaseModel):
@@ -35,74 +42,53 @@ class CatalogUpdateBody(CatalogWrite):
     pass
 
 
+class MandatoryAttributeValueOut(BaseModel):
+    definition_id: int
+    catalog_id: int
+    attribute_name: str
+    value: str | None
+
+
+class MandatoryAttributeValueWrite(BaseModel):
+    definition_id: int
+    value: str = Field(..., min_length=1)
+
+
 class ProductOut(BaseModel):
     id: int
     admin_sku: str
-    catalog_ref: int
+    primary_catalog_id: int
+    catalog_ids: list[int]
+    linked_catalogs: list[CatalogOut] = Field(default_factory=list)
     client_sku: str
-    product_type: str
+    product_name: str
     price: float
     currency: str
-    quantity: int
     is_active: bool
-    teinte: str | None = None
-    type_de_produit: str | None = None
-    gamme: str | None = None
-    duree_garantie: str | None = None
-    conditions_garantie: str | None = None
-    piece_ouvrage_destination: str | None = None
-    traitement_bois_classification: str | None = None
-    produit_nuance: str | None = None
-    description_profil: str | None = None
-    couleur_traitement_autoclave: str | None = None
-    code_douane_sh8: str | None = None
-    type_bois: str | None = None
-    essence_bois: str | None = None
-    longueur: float | None = None
-    hauteur: float | None = None
-    largeur: float | None = None
-    volume: float | None = None
-    poids_net: float | None = None
+    mandatory_attributes: list[MandatoryAttributeValueOut] = []
 
 
 class ProductWrite(BaseModel):
     session: PortalSession
-    catalog_ref: int
+    primary_catalog_id: int
+    additional_catalog_ids: list[int] = Field(default_factory=list)
     client_sku: str = Field(..., min_length=1)
-    product_type: str = Field(..., min_length=1)
+    product_name: str = Field(..., min_length=1)
     price: float = Field(..., ge=0)
     currency: str = Field(..., min_length=3, max_length=3)
-    quantity: int = Field(0, ge=0)
     is_active: bool = True
-    teinte: str | None = None
-    type_de_produit: str | None = None
-    gamme: str | None = None
-    duree_garantie: str | None = None
-    conditions_garantie: str | None = None
-    piece_ouvrage_destination: str | None = None
-    traitement_bois_classification: str | None = None
-    produit_nuance: str | None = None
-    description_profil: str | None = None
-    couleur_traitement_autoclave: str | None = None
-    code_douane_sh8: str | None = None
-    type_bois: str | None = None
-    essence_bois: str | None = None
-    longueur: float | None = None
-    hauteur: float | None = None
-    largeur: float | None = None
-    volume: float | None = None
-    poids_net: float | None = None
+    mandatory_attributes: list[MandatoryAttributeValueWrite] = Field(default_factory=list)
 
 
 class ProductListEntry(BaseModel):
     product_id: int
     admin_sku: str
     client_sku: str
-    catalog_ref: int
+    product_name: str
+    primary_catalog_id: int
     catalog_name: str | None
     price: float
     currency: str
-    quantity: int
     is_active: bool
 
 

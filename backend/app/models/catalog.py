@@ -31,8 +31,25 @@ class Catalog(Base):
     children: Mapped[list["Catalog"]] = relationship(
         "Catalog", back_populates="parent"
     )
-    products: Mapped[list["Product"]] = relationship(
-        "Product", back_populates="catalog", foreign_keys="Product.catalog_ref"
+    catalog_products: Mapped[list["CatalogProduct"]] = relationship(
+        "CatalogProduct", back_populates="catalog", cascade="all, delete-orphan"
+    )
+    attribute_definitions: Mapped[list["CatalogAttributeDefinition"]] = relationship(
+        "CatalogAttributeDefinition",
+        back_populates="catalog",
+        cascade="all, delete-orphan",
+    )
+    outgoing_links: Mapped[list["CatalogLink"]] = relationship(
+        "CatalogLink",
+        foreign_keys="CatalogLink.from_catalog_id",
+        back_populates="from_catalog",
+        cascade="all, delete-orphan",
+    )
+    incoming_links: Mapped[list["CatalogLink"]] = relationship(
+        "CatalogLink",
+        foreign_keys="CatalogLink.to_catalog_id",
+        back_populates="to_catalog",
+        cascade="all, delete-orphan",
     )
     product_orders: Mapped[list["ProductOrder"]] = relationship(
         "ProductOrder", back_populates="catalog"

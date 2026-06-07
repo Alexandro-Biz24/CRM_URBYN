@@ -23,68 +23,39 @@ class CatalogCreateV2(BaseModel):
     parent_id: int | None = None
 
 
+class MandatoryAttributeValueCreateV2(BaseModel):
+    definition_id: int
+    value: str = Field(..., min_length=1)
+
+
 class ProductCreateV2(BaseModel):
-    catalog_ref: int
+    primary_catalog_id: int
+    additional_catalog_ids: list[int] = Field(default_factory=list)
     client_sku: str
-    product_type: str
+    product_name: str
     price: float = Field(..., ge=0)
     currency: str = "EUR"
-    quantity: int = Field(0, ge=0)
     is_active: bool = True
-    teinte: str | None = None
-    type_de_produit: str | None = None
-    gamme: str | None = None
-    duree_garantie: str | None = None
-    conditions_garantie: str | None = None
-    piece_ouvrage_destination: str | None = None
-    traitement_bois_classification: str | None = None
-    produit_nuance: str | None = None
-    description_profil: str | None = None
-    couleur_traitement_autoclave: str | None = None
-    code_douane_sh8: str | None = None
-    type_bois: str | None = None
-    essence_bois: str | None = None
-    longueur: float | None = None
-    largeur: float | None = None
-    hauteur: float | None = None
-    volume: float | None = None
-    poids_net: float | None = None
+    mandatory_attributes: list[MandatoryAttributeValueCreateV2] = Field(default_factory=list)
 
 
 class SupplierOfferCreateV2(BaseModel):
     company_id: str | None = None
     user_id: int | None = None
     catalog: CatalogCreateV2 | None = None
-    catalog_ref: int | None = None
+    primary_catalog_id: int | None = None
     product: ProductCreateV2
 
 
 class ProductUpdateV2(BaseModel):
-    catalog_ref: int | None = None
+    primary_catalog_id: int | None = None
+    additional_catalog_ids: list[int] | None = None
     client_sku: str | None = None
-    product_type: str | None = None
+    product_name: str | None = None
     price: float | None = Field(None, ge=0)
     currency: str | None = None
-    quantity: int | None = Field(None, ge=0)
     is_active: bool | None = None
-    teinte: str | None = None
-    type_de_produit: str | None = None
-    gamme: str | None = None
-    duree_garantie: str | None = None
-    conditions_garantie: str | None = None
-    piece_ouvrage_destination: str | None = None
-    traitement_bois_classification: str | None = None
-    produit_nuance: str | None = None
-    description_profil: str | None = None
-    couleur_traitement_autoclave: str | None = None
-    code_douane_sh8: str | None = None
-    type_bois: str | None = None
-    essence_bois: str | None = None
-    longueur: float | None = None
-    largeur: float | None = None
-    hauteur: float | None = None
-    volume: float | None = None
-    poids_net: float | None = None
+    mandatory_attributes: list[MandatoryAttributeValueCreateV2] | None = None
 
 
 class ShippingRateCreatedV2(BaseModel):

@@ -5,9 +5,11 @@ from sqlalchemy.orm import Session
 from app.repositories import product_price_repo
 from app.repositories import supplier_portal_repo as repo
 from app.schemas.supplier_portal import (
+    CatalogAttributeDefinitionOut,
     CatalogOut,
     CatalogUpdateBody,
     CatalogWrite,
+    MandatoryAttributeValueOut,
     PortalContext,
     PortalSession,
     ProductAttributOut,
@@ -43,49 +45,81 @@ def _resolve_context(db: Session, session: PortalSession) -> PortalContext:
     )
 
 
-def _catalog_out(c) -> CatalogOut:
+def _catalog_out(c, *, breadcrumb: list[str] | None = None) -> CatalogOut:
     return CatalogOut(
         id=c.id,
         name=c.name,
         description=c.description,
         is_active=c.is_active,
         parent_id=c.parent_id,
+        breadcrumb=breadcrumb or [],
     )
 
 
-def _product_out(db: Session, p) -> ProductOut:
+def _mandatory_out(rows) -> list[MandatoryAttributeValueOut]:
+    return [
+        MandatoryAttributeValueOut(
+            definition_id=defn.id,
+            catalog_id=defn.catalog_id,
+            attribute_name=defn.attribute_name,
+            value=val.value,
+        )
+        for val, defn in rows
+    ]
+
+
+def _product_out(db: Session, p, primary_catalog_id: int | None = None) -> ProductOut:
     latest = product_price_repo.get_latest_price(db, p.id)
     price = float(latest.price) if latest else 0.0
     currency = latest.currency if latest else "EUR"
+    catalog_ids = repo.get_product_catalog_ids(db, p.id)
+    primary = primary_catalog_id or (catalog_ids[0] if catalog_ids else 0)
+    mandatory = _mandatory_out(repo.list_mandatory_attribute_values(db, p.id))
+    linked_catalogs: list[CatalogOut] = []
+    for cid in catalog_ids:
+        c = repo.get_catalog(db, cid)
+        if c is not None:
+            linked_catalogs.append(
+                _catalog_out(c, breadcrumb=repo.get_breadcrumb(db, c))
+            )
     return ProductOut(
         id=p.id,
         admin_sku=p.admin_sku,
-        catalog_ref=p.catalog_ref,
+        primary_catalog_id=primary,
+        catalog_ids=catalog_ids,
+        linked_catalogs=linked_catalogs,
         client_sku=p.client_sku,
-        product_type=p.product_type,
+        product_name=p.product_name,
         price=price,
         currency=currency,
-        quantity=p.quantity,
         is_active=p.is_active,
-        teinte=p.teinte,
-        type_de_produit=p.type_de_produit,
-        gamme=p.gamme,
-        duree_garantie=p.duree_garantie,
-        conditions_garantie=p.conditions_garantie,
-        piece_ouvrage_destination=p.piece_ouvrage_destination,
-        traitement_bois_classification=p.traitement_bois_classification,
-        produit_nuance=p.produit_nuance,
-        description_profil=p.description_profil,
-        couleur_traitement_autoclave=p.couleur_traitement_autoclave,
-        code_douane_sh8=p.code_douane_sh8,
-        type_bois=p.type_bois,
-        essence_bois=p.essence_bois,
-        longueur=float(p.longueur) if p.longueur is not None else None,
-        hauteur=float(p.hauteur) if p.hauteur is not None else None,
-        largeur=float(p.largeur) if p.largeur is not None else None,
-        volume=float(p.volume) if p.volume is not None else None,
-        poids_net=float(p.poids_net) if p.poids_net is not None else None,
+        mandatory_attributes=mandatory,
     )
+
+
+def _validate_catalogs_exist(db: Session, catalog_ids: list[int]) -> None:
+    for cid in catalog_ids:
+        if repo.get_catalog(db, cid) is None:
+            raise PortalError("not_found", f"Catalogue introuvable : {cid}.")
+
+
+def _validate_mandatory_attributes(
+    db: Session, catalog_ids: list[int], provided: list
+) -> None:
+    definitions = repo.list_attribute_definitions_for_catalogs(db, catalog_ids)
+    if not definitions:
+        return
+    provided_map = {v.definition_id: v.value.strip() for v in provided}
+    missing: list[str] = []
+    for defn in definitions:
+        val = provided_map.get(defn.id, "").strip()
+        if not val:
+            missing.append(defn.attribute_name)
+    if missing:
+        raise PortalError(
+            "missing_mandatory_attributes",
+            f"Attributs obligatoires manquants : {', '.join(missing)}.",
+        )
 
 
 def get_context(db: Session, session: PortalSession) -> PortalContext:
@@ -116,7 +150,10 @@ def search_catalogs(
     db: Session, session: PortalSession, query: str, limit: int = 30
 ) -> list[CatalogOut]:
     _resolve_context(db, session)
-    return [_catalog_out(c) for c in repo.search_catalogs(db, query, limit)]
+    return [
+        _catalog_out(c, breadcrumb=repo.get_breadcrumb(db, c))
+        for c in repo.search_catalogs(db, query, limit)
+    ]
 
 
 def get_catalog(db: Session, session: PortalSession, catalog_id: int) -> CatalogOut:
@@ -125,6 +162,20 @@ def get_catalog(db: Session, session: PortalSession, catalog_id: int) -> Catalog
     if c is None:
         raise PortalError("not_found", "Catalogue introuvable.")
     return _catalog_out(c)
+
+
+def list_catalog_attribute_definitions(
+    db: Session, session: PortalSession, catalog_id: int
+) -> list[CatalogAttributeDefinitionOut]:
+    _resolve_context(db, session)
+    if repo.get_catalog(db, catalog_id) is None:
+        raise PortalError("not_found", "Catalogue introuvable.")
+    return [
+        CatalogAttributeDefinitionOut(
+            id=d.id, catalog_id=d.catalog_id, attribute_name=d.attribute_name
+        )
+        for d in repo.list_catalog_attribute_definitions(db, catalog_id)
+    ]
 
 
 def create_catalog(db: Session, data: CatalogWrite) -> CatalogOut:
@@ -155,23 +206,29 @@ def update_catalog(
 def list_products(
     db: Session,
     session: PortalSession,
-    catalog_ref: int | None = None,
+    catalog_id: int | None = None,
 ) -> list[ProductListEntry]:
     ctx = _resolve_context(db, session)
-    rows = repo.list_products(db, ctx.company_id, catalog_ref)
+    rows = repo.list_products(db, ctx.company_id, catalog_id)
     result: list[ProductListEntry] = []
+    seen: set[int] = set()
     for p, cat in rows:
+        if p.id in seen:
+            continue
+        seen.add(p.id)
         latest = product_price_repo.get_latest_price(db, p.id)
+        catalog_ids = repo.get_product_catalog_ids(db, p.id)
+        primary = catalog_ids[0] if catalog_ids else cat.id
         result.append(
             ProductListEntry(
                 product_id=p.id,
                 admin_sku=p.admin_sku,
                 client_sku=p.client_sku,
-                catalog_ref=p.catalog_ref,
+                product_name=p.product_name,
+                primary_catalog_id=primary,
                 catalog_name=cat.name,
                 price=float(latest.price) if latest else 0.0,
                 currency=latest.currency if latest else "EUR",
-                quantity=p.quantity,
                 is_active=p.is_active,
             )
         )
@@ -188,12 +245,14 @@ def get_product(db: Session, session: PortalSession, product_id: int) -> Product
 
 def create_product(db: Session, data: ProductWrite) -> ProductOut:
     ctx = _resolve_context(db, data.session)
-    if repo.get_catalog(db, data.catalog_ref) is None:
-        raise PortalError("not_found", "Catalogue introuvable.")
+    catalog_ids = [data.primary_catalog_id, *data.additional_catalog_ids]
+    catalog_ids = list(dict.fromkeys(catalog_ids))
+    _validate_catalogs_exist(db, catalog_ids)
+    _validate_mandatory_attributes(db, catalog_ids, data.mandatory_attributes)
     p = repo.create_product(db, ctx.company_id, data)
     db.commit()
     db.refresh(p)
-    return _product_out(db, p)
+    return _product_out(db, p, data.primary_catalog_id)
 
 
 def update_product(
@@ -203,17 +262,14 @@ def update_product(
     p = repo.get_product(db, ctx.company_id, product_id)
     if p is None:
         raise PortalError("not_found", "Produit introuvable.")
-    if data.catalog_ref != p.catalog_ref:
-        raise PortalError(
-            "catalog_mismatch",
-            "Le catalogue du produit ne peut pas être modifié.",
-        )
-    if repo.get_catalog(db, data.catalog_ref) is None:
-        raise PortalError("not_found", "Catalogue introuvable.")
+    catalog_ids = [data.primary_catalog_id, *data.additional_catalog_ids]
+    catalog_ids = list(dict.fromkeys(catalog_ids))
+    _validate_catalogs_exist(db, catalog_ids)
+    _validate_mandatory_attributes(db, catalog_ids, data.mandatory_attributes)
     p = repo.update_product(db, p, data)
     db.commit()
     db.refresh(p)
-    return _product_out(db, p)
+    return _product_out(db, p, data.primary_catalog_id)
 
 
 def list_attributes(

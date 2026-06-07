@@ -570,3 +570,28 @@ Structure  DEMANDÉ :
 demande : description du besoin en output pour le front 
 autre : précision exceptionnel mais aps obligatoire 
 }
+
+
+
+
+
+
+
+
+
+
+Gestion catalogs pas de suppression 
+
+Table intermedaire multi cat par product et multi produit par cat 
+
+Accompagnement des fournisseur sur le mapping des catalog pour un fournisseur, on fait de historique de tt les connexion inter catalog de la table de liaison 
+
+associé par catalog les attribu obligatoire 
+
+
+pour les produit :
+
+
+suppresison de stock 
+devise par defaut 
+pouvoir modifier le sku_client 

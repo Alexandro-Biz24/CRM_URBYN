@@ -5,8 +5,9 @@ from decimal import Decimal
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
-from app.models import Catalog, Company, CompanyUser, Product, ShippingRate
+from app.models import Catalog, CatalogProduct, Company, CompanyUser, Product, ShippingRate
 from app.repositories import product_price_repo
+from app.repositories import supplier_portal_repo as portal_repo
 from app.schemas.suppliers_offers_v2 import (
     CatalogCreateV2,
     ProductCreateV2,
@@ -74,44 +75,23 @@ def create_product(
     company_id: str,
     payload: ProductCreateV2,
 ) -> Product:
-    product = Product(
-        admin_sku="PENDING",
-        catalog_ref=payload.catalog_ref,
-        company_tva_intra_com=company_id.strip(),
+    from app.schemas.supplier_portal import MandatoryAttributeValueWrite, PortalSession, ProductWrite
+
+    write = ProductWrite(
+        session=PortalSession(user_id=0, email="api@v2.local"),
+        primary_catalog_id=payload.primary_catalog_id,
+        additional_catalog_ids=payload.additional_catalog_ids,
         client_sku=payload.client_sku,
-        product_type=payload.product_type,
-        quantity=payload.quantity,
-        is_active=payload.is_active,
-        teinte=payload.teinte,
-        type_de_produit=payload.type_de_produit,
-        gamme=payload.gamme,
-        duree_garantie=payload.duree_garantie,
-        conditions_garantie=payload.conditions_garantie,
-        piece_ouvrage_destination=payload.piece_ouvrage_destination,
-        traitement_bois_classification=payload.traitement_bois_classification,
-        produit_nuance=payload.produit_nuance,
-        description_profil=payload.description_profil,
-        couleur_traitement_autoclave=payload.couleur_traitement_autoclave,
-        code_douane_sh8=payload.code_douane_sh8,
-        type_bois=payload.type_bois,
-        essence_bois=payload.essence_bois,
-        longueur=payload.longueur,
-        largeur=payload.largeur,
-        hauteur=payload.hauteur,
-        volume=payload.volume,
-        poids_net=payload.poids_net,
-    )
-    db.add(product)
-    db.flush()
-    product.admin_sku = f"ADM-{product.id:08d}"
-    product_price_repo.append_price(
-        db,
-        product_id=product.id,
+        product_name=payload.product_name,
         price=payload.price,
         currency=payload.currency,
+        is_active=payload.is_active,
+        mandatory_attributes=[
+            MandatoryAttributeValueWrite(definition_id=m.definition_id, value=m.value)
+            for m in payload.mandatory_attributes
+        ],
     )
-    db.flush()
-    return product
+    return portal_repo.create_product(db, company_id, write)
 
 
 def get_product_for_company(
@@ -124,22 +104,59 @@ def get_product_for_company(
     return db.scalar(stmt)
 
 
+def get_product_primary_catalog_id(db: Session, product_id: int) -> int | None:
+    ids = portal_repo.get_product_catalog_ids(db, product_id)
+    return ids[0] if ids else None
+
+
 def update_product_fields(
     db: Session, product: Product, payload: ProductUpdateV2
 ) -> list[str]:
+    from app.schemas.supplier_portal import MandatoryAttributeValueWrite, ProductWrite
+
+    changed: list[str] = []
     updates = payload.model_dump(exclude_unset=True)
+
+    primary = updates.pop("primary_catalog_id", None)
+    additional = updates.pop("additional_catalog_ids", None)
+    mandatory = updates.pop("mandatory_attributes", None)
     price = updates.pop("price", None)
     currency = updates.pop("currency", None)
 
     for key, value in updates.items():
-        setattr(product, key, value)
+        if hasattr(product, key):
+            setattr(product, key, value)
+            changed.append(key)
 
-    changed: list[str] = list(updates.keys())
-    if "price" in payload.model_fields_set or "currency" in payload.model_fields_set:
-        latest = product_price_repo.get_latest_price(db, product.id)
-        new_price = Decimal(
-            str(price if price is not None else (latest.price if latest else 0))
+    catalog_ids = portal_repo.get_product_catalog_ids(db, product.id)
+    primary_id = primary if primary is not None else (catalog_ids[0] if catalog_ids else None)
+    if primary_id is None:
+        return changed
+
+    additional_ids = (
+        additional if additional is not None else [c for c in catalog_ids if c != primary_id]
+    )
+
+    if primary is not None or additional is not None:
+        portal_repo.sync_catalog_products(
+            db, product.id, [primary_id, *additional_ids]
         )
+        changed.extend(["primary_catalog_id", "additional_catalog_ids"])
+
+    if mandatory is not None:
+        portal_repo.sync_mandatory_attributes(
+            db,
+            product.id,
+            [
+                MandatoryAttributeValueWrite(definition_id=m["definition_id"], value=m["value"])
+                for m in mandatory
+            ],
+        )
+        changed.append("mandatory_attributes")
+
+    if price is not None or currency is not None:
+        latest = product_price_repo.get_latest_price(db, product.id)
+        new_price = Decimal(str(price if price is not None else (latest.price if latest else 0)))
         new_currency = (currency or (latest.currency if latest else "EUR")).upper()[:3]
         if latest is None or latest.price != new_price or latest.currency != new_currency:
             product_price_repo.append_price(
@@ -148,8 +165,9 @@ def update_product_fields(
                 price=new_price,
                 currency=new_currency,
             )
-        if "price" in payload.model_fields_set:
+        if price is not None:
             changed.append("price")
-        if "currency" in payload.model_fields_set:
+        if currency is not None:
             changed.append("currency")
+
     return changed

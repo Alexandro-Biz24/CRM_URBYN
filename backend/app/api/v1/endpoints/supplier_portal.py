@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_db
 from app.schemas.supplier_portal import (
+    CatalogAttributeDefinitionOut,
     CatalogOut,
     PortalContext,
     PortalSession,
@@ -113,16 +114,33 @@ def portal_get_catalog(
         raise _http_error(exc) from exc
 
 
+@router.get(
+    "/catalogs/{catalog_id}/attribute-definitions",
+    response_model=list[CatalogAttributeDefinitionOut],
+)
+def portal_list_catalog_attribute_definitions(
+    catalog_id: int,
+    user_id: int = Query(...),
+    email: str = Query(...),
+    db: Session = Depends(get_db),
+) -> list[CatalogAttributeDefinitionOut]:
+    session = PortalSession(user_id=user_id, email=email)
+    try:
+        return portal_svc.list_catalog_attribute_definitions(db, session, catalog_id)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
 @router.get("/products", response_model=list[ProductListEntry])
 def portal_list_products(
     user_id: int = Query(...),
     email: str = Query(...),
-    catalog_ref: int | None = Query(None),
+    catalog_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ) -> list[ProductListEntry]:
     session = PortalSession(user_id=user_id, email=email)
     try:
-        return portal_svc.list_products(db, session, catalog_ref)
+        return portal_svc.list_products(db, session, catalog_id)
     except PortalError as exc:
         raise _http_error(exc) from exc
 

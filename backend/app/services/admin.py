@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.repositories import admin_catalog_repo as repo
 from app.schemas.admin import (
+    AdminAttributeDefinitionOut,
     AdminCatalogDetail,
     AdminCatalogNode,
     AdminCatalogTreeResponse,
@@ -78,6 +79,7 @@ def get_catalog_detail(db: Session, catalog_id: int) -> AdminCatalogDetail:
     c = repo.get_catalog(db, catalog_id)
     if c is None:
         raise AdminError("not_found", "Catalogue introuvable.")
+    attrs = repo.list_attribute_definitions(db, c.id)
     return AdminCatalogDetail(
         id=c.id,
         name=c.name,
@@ -87,6 +89,10 @@ def get_catalog_detail(db: Session, catalog_id: int) -> AdminCatalogDetail:
         child_count=repo.count_children(db, c.id),
         product_count=repo.count_products(db, c.id),
         breadcrumb=repo.get_breadcrumb(db, c),
+        attribute_definitions=[
+            AdminAttributeDefinitionOut(id=a.id, attribute_name=a.attribute_name)
+            for a in attrs
+        ],
     )
 
 

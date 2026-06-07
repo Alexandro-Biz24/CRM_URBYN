@@ -11,7 +11,6 @@ from app.schemas.suppliers_offers_v2 import (
     ShippingRateCreatedV2,
     SupplierOfferCreateV2,
     SupplierOfferCreatedV2,
-    ProductUpdatedV2,
 )
 
 
@@ -69,22 +68,21 @@ def create_supplier_offer_v2(
             message="Company introuvable pour la creation de l'offre.",
         )
 
-    catalog_ref = payload.catalog_ref
+    primary_catalog_id = payload.primary_catalog_id
     if payload.catalog is not None:
         catalog = suppliers_offers_v2_repo.create_catalog(db=db, payload=payload.catalog)
-        catalog_ref = catalog.id
-    if catalog_ref is None:
+        primary_catalog_id = catalog.id
+    if primary_catalog_id is None:
+        primary_catalog_id = payload.product.primary_catalog_id
+    if suppliers_offers_v2_repo.get_catalog(db, primary_catalog_id) is None:
         raise SupplierOfferV2Error(
-            field="catalog_ref",
-            message="Fournis catalog_ref ou un bloc catalog a creer.",
-        )
-    if suppliers_offers_v2_repo.get_catalog(db, catalog_ref) is None:
-        raise SupplierOfferV2Error(
-            field="catalog_ref",
+            field="primary_catalog_id",
             message="Catalogue introuvable.",
         )
 
-    product_payload = payload.product.model_copy(update={"catalog_ref": catalog_ref})
+    product_payload = payload.product.model_copy(
+        update={"primary_catalog_id": primary_catalog_id}
+    )
     product = suppliers_offers_v2_repo.create_product(
         db=db,
         company_id=resolved_company_id,
@@ -93,7 +91,7 @@ def create_supplier_offer_v2(
     db.commit()
     db.refresh(product)
     return SupplierOfferCreatedV2(
-        catalog_id=catalog_ref,
+        catalog_id=primary_catalog_id,
         product_id=product.id,
         admin_sku=product.admin_sku,
         company_id=resolved_company_id,
@@ -123,10 +121,10 @@ def update_product_v2(
             message="Aucun champ a mettre a jour.",
         )
 
-    if payload.catalog_ref is not None:
-        if suppliers_offers_v2_repo.get_catalog(db, payload.catalog_ref) is None:
+    if payload.primary_catalog_id is not None:
+        if suppliers_offers_v2_repo.get_catalog(db, payload.primary_catalog_id) is None:
             raise SupplierOfferV2Error(
-                field="catalog_ref",
+                field="primary_catalog_id",
                 message="Catalogue introuvable.",
             )
 

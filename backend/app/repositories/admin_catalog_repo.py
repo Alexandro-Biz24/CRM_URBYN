@@ -5,7 +5,15 @@ from datetime import datetime
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
-from app.models import Catalog, Product, ProductAttribut, ProductOrder, ProductPriceHistory
+from app.models import (
+    Catalog,
+    CatalogAttributeDefinition,
+    CatalogProduct,
+    Product,
+    ProductAttribut,
+    ProductOrder,
+    ProductPriceHistory,
+)
 from app.schemas.admin import AdminCatalogUpdate, AdminCatalogWrite
 
 
@@ -27,7 +35,9 @@ def count_children(db: Session, catalog_id: int) -> int:
 def count_products(db: Session, catalog_id: int) -> int:
     return int(
         db.scalar(
-            select(func.count()).select_from(Product).where(Product.catalog_ref == catalog_id)
+            select(func.count())
+            .select_from(CatalogProduct)
+            .where(CatalogProduct.catalog_id == catalog_id)
         )
         or 0
     )
@@ -40,6 +50,37 @@ def list_all_catalogs(db: Session) -> list[Catalog]:
 
 def get_catalog(db: Session, catalog_id: int) -> Catalog | None:
     return db.get(Catalog, catalog_id)
+
+
+def list_attribute_definitions(db: Session, catalog_id: int) -> list[CatalogAttributeDefinition]:
+    stmt = (
+        select(CatalogAttributeDefinition)
+        .where(CatalogAttributeDefinition.catalog_id == catalog_id)
+        .order_by(CatalogAttributeDefinition.attribute_name)
+    )
+    return list(db.scalars(stmt).all())
+
+
+def sync_attribute_definitions(db: Session, catalog_id: int, names: list[str]) -> None:
+    cleaned = [n.strip() for n in names if n.strip()]
+    unique_names = list(dict.fromkeys(cleaned))
+    existing = list_attribute_definitions(db, catalog_id)
+    existing_by_name = {a.attribute_name.lower(): a for a in existing}
+    target_lower = {n.lower() for n in unique_names}
+
+    for attr in existing:
+        if attr.attribute_name.lower() not in target_lower:
+            db.delete(attr)
+
+    for name in unique_names:
+        if name.lower() not in existing_by_name:
+            db.add(
+                CatalogAttributeDefinition(
+                    catalog_id=catalog_id,
+                    attribute_name=name,
+                )
+            )
+    db.flush()
 
 
 def get_breadcrumb(db: Session, catalog: Catalog) -> list[str]:
@@ -75,6 +116,7 @@ def create_catalog(db: Session, data: AdminCatalogWrite) -> Catalog:
     if parent_id is None:
         catalog.parent_id = catalog.id
         db.flush()
+    sync_attribute_definitions(db, catalog.id, data.attribute_names)
     return catalog
 
 
@@ -83,6 +125,7 @@ def update_catalog(db: Session, catalog: Catalog, data: AdminCatalogUpdate) -> C
     catalog.description = data.description.strip()
     catalog.is_active = data.is_active
     catalog.updated_at = datetime.utcnow()
+    sync_attribute_definitions(db, catalog.id, data.attribute_names)
     db.flush()
     return catalog
 
@@ -103,7 +146,9 @@ def delete_catalog(db: Session, catalog_id: int) -> None:
         raise ValueError("has_orders")
 
     product_ids = list(
-        db.scalars(select(Product.id).where(Product.catalog_ref == catalog_id)).all()
+        db.scalars(
+            select(CatalogProduct.product_id).where(CatalogProduct.catalog_id == catalog_id)
+        ).all()
     )
     if product_ids:
         db.execute(
