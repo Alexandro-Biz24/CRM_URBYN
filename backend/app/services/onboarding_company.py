@@ -116,9 +116,16 @@ def _create_new_company(
 
     existing = onboarding_company_repo.get_company(db, tva)
     if existing is not None:
-        raise OnboardingCompanyError(
-            "company_exists",
-            "Cette société existe déjà. Sélectionnez-la dans la liste.",
+        # Société orpheline (ex. dernier user supprimé en admin) : rattacher au lieu de bloquer
+        if not onboarding_company_repo.user_has_company_membership(db, user.id, existing.tva_intra_com):
+            onboarding_company_repo.create_company_membership(db, user.id, existing.tva_intra_com)
+        db.commit()
+        return OnboardingCompanyResponse(
+            user_id=user.id,
+            company_id=existing.tva_intra_com,
+            company_name=existing.company_name,
+            company_created=False,
+            message="Vous êtes rattaché à la société existante.",
         )
 
     company = onboarding_company_repo.create_company_with_addresses(db, new_co)

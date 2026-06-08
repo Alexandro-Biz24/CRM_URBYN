@@ -107,8 +107,20 @@ def count_user_orders(db: Session, user_id: int) -> int:
 
 
 def delete_user(db: Session, user_id: int) -> None:
+    """Supprime un utilisateur et ses données personnelles.
+
+    Ne supprime JAMAIS la société (table ``companies``), ni ses produits.
+    Seul le lien ``companies_users`` est retiré.
+    """
     if count_user_orders(db, user_id) > 0:
         raise ValueError("has_orders")
+
+    linked_company_tvas = list(
+        db.scalars(
+            select(CompanyUser.company_tva_intra_com).where(CompanyUser.user_id == user_id)
+        ).all()
+    )
+
     review_ids = list(
         db.scalars(select(Review.id).where(Review.user_id == user_id)).all()
     )
@@ -123,6 +135,13 @@ def delete_user(db: Session, user_id: int) -> None:
     db.execute(delete(UserProfile).where(UserProfile.user_id == user_id))
     db.execute(delete(User).where(User.id == user_id))
     db.flush()
+
+    for tva in linked_company_tvas:
+        if db.get(Company, tva) is None:
+            raise RuntimeError(
+                f"La société {tva} a été supprimée par erreur lors de la suppression "
+                f"de l'utilisateur {user_id}."
+            )
 
 
 def _primary_address(db: Session, tva: str) -> Address | None:
@@ -182,9 +201,11 @@ def list_companies_by_side(db: Session) -> tuple[list[dict], list[dict]]:
     clients: list[dict] = []
     for company in companies:
         sides = _company_side(db, company.tva_intra_com)
-        if not sides:
-            continue
         row = _company_list_row(db, company)
+        if not sides:
+            # Société orpheline (dernier user supprimé) — visible côté partenaires
+            suppliers.append(row)
+            continue
         if ROLE_SUPPLIER in sides:
             suppliers.append(row)
         if ROLE_CLIENT in sides:

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
-from decimal import Decimal
-
-from sqlalchemy import Select, distinct, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Address, Company, CompanyUser, Role, User
+from app.models import Address, Company, CompanyUser
 from app.schemas.onboarding_company import OnboardingAddressInput, OnboardingNewCompanyInput
 
 
@@ -15,21 +12,7 @@ def normalize_tva(tva: str) -> str:
 
 
 def list_companies_for_dropdown(db: Session, *, limit: int = 200) -> list[tuple[str, str]]:
-    """Sociétés déjà liées à au moins un fournisseur, sinon toutes les sociétés."""
-    supplier_role = db.scalar(select(Role).where(Role.role_name == "Fournisseur"))
-    if supplier_role is not None:
-        stmt = (
-            select(distinct(Company.tva_intra_com), Company.company_name)
-            .join(CompanyUser, CompanyUser.company_tva_intra_com == Company.tva_intra_com)
-            .join(User, User.id == CompanyUser.user_id)
-            .where(User.role_id == supplier_role.id)
-            .order_by(Company.company_name)
-            .limit(limit)
-        )
-        rows = db.execute(stmt).all()
-        if rows:
-            return [(r[0], r[1]) for r in rows]
-
+    """Toutes les sociétés en base (y compris sans utilisateur lié après suppression admin)."""
     stmt = (
         select(Company.tva_intra_com, Company.company_name)
         .order_by(Company.company_name)
