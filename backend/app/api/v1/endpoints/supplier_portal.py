@@ -10,6 +10,7 @@ from app.schemas.supplier_portal import (
     ProductAttributOut,
     ProductAttributUpdateBody,
     ProductAttributWrite,
+    ProductCatalogGroupsResponse,
     ProductListEntry,
     ProductOut,
     ProductWrite,
@@ -127,6 +128,19 @@ def portal_list_catalog_attribute_definitions(
     session = PortalSession(user_id=user_id, email=email)
     try:
         return portal_svc.list_catalog_attribute_definitions(db, session, catalog_id)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/products/grouped-by-catalog", response_model=ProductCatalogGroupsResponse)
+def portal_list_products_grouped(
+    user_id: int = Query(...),
+    email: str = Query(...),
+    db: Session = Depends(get_db),
+) -> ProductCatalogGroupsResponse:
+    session = PortalSession(user_id=user_id, email=email)
+    try:
+        return portal_svc.list_products_grouped(db, session)
     except PortalError as exc:
         raise _http_error(exc) from exc
 

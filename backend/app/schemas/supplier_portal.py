@@ -92,6 +92,16 @@ class ProductListEntry(BaseModel):
     is_active: bool
 
 
+class ProductCatalogGroup(BaseModel):
+    catalog_id: int
+    catalog_name: str | None
+    products: list[ProductListEntry] = Field(default_factory=list)
+
+
+class ProductCatalogGroupsResponse(BaseModel):
+    groups: list[ProductCatalogGroup] = Field(default_factory=list)
+
+
 class ProductAttributOut(BaseModel):
     id: int
     name: str

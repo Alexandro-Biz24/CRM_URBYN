@@ -595,3 +595,33 @@ pour les produit :
 suppresison de stock 
 devise par defaut 
 pouvoir modifier le sku_client 
+
+
+ok 
+
+1) actuellemnt la notion de catalog récurssif avec parent id pour faire des sous catalogs etc c'est trop bien et on peux associer un produit a un catalog odnc les catalog peuvent contenir une multitude produit. 
+
+finalement j'aurais besoin que les produits puissent etre aussi reference dans plusieur catalogs (typiquement deux famille proche ou en prevision de produit hybirde quoi. mais lacomme ça avec juste la table produit et la table catalog je vois pas comment faire est ce qu'il fuat une table intermediaire qui sert de reference ? pour que un catalog liste plusieurs produit et un meme produit soit dans plusieurs catalogue  ? fait moi une ou des proposition pour qu eça soit simple pragmatique et rapide a la reuqete 
+
+2) par conséquent et dans un objectif de faire des propositions de lien d'un produit placé das un catalog avec d'autre catalog 'similaire' j'aurais besoin d'une table meme pas liée au reste de la data base qui juste referencera de maniere UNIQUE les paire de catalog qui on été liée par les fournisseur tt au long de la vie de la DB. et dans un sens unique ça sera un champs from et un champ to 
+
+genre 'from massif beton to Lestage'donc si jamais il y a la paire from lestage to massif beton elle ets bien differnete le sens est IMPORTANT 
+
+
+3) au niveau de la table produit la logique des attribut separe et modifiebale a la guise c'est TOP mais finalment sur la table product directement, il y a un soucis je vais pas reference 100 paramtere d eprduit a la main. surtotu que chaque ctaalog va avoir des parametre qui leur seront propre donc je devrais pouvoir associé par catalogue des parametre de produit qui leur soit propre. 
+
+donc d'une maniere ou d'une autre il faut que si je suis dans le massif beton et que je créer un produit je vais ecrie dans des champs "poids" "hauteur" "largeur" par exemple, mais ces champs la je pense pas qu'il doivent exister dans la able produit directement, il me faut une table a part je pense que je peux modifier direct via mon interface, par modifier j'entend je créée en tant qu'admin un nouveau catalog je veux en meme temps definir quel sont les attribut/parmaetre des produit de ce catalog que j'autorise a saisir. 
+Donc peut etre juste dans la table catalog rajouter un referenicel à une nouvelle table  ou si pas ebsoin juste cette nouvelle table  qui reference justement à partir de l'id d'un catalog dans un champs un nom d'attribut dans un autre champs et un champs de valeur de l'attribut 
+
+et ça se ser gérer direct par api via l'interface donc je peux pas savoir a l'avance si le parametre qui sera créé pour un produti d'un catalog sera en une valeur a chosiir parmis une liste  un str ou un int à la limite c'ets du detail et je ferai un truc full char si il fuat mais si il peut y avoir gestion dynamique de ça sachant que pour chaque attribut de chaque catalog je sai spas si c'est possible dans le champs valeur d'avori different type pour moi non. Donc on laisse de la siasi libre et l apartie restrictive sera gérer dnas le knowledge de l'app. Donc fait moi juste cette nouvellle table liée à catalog pour la  3) qui me permet donc de créer des attribu liée a un catalog direct et efface tout les champs de product SAUF : [catalog_ref
+ADMIN_SKU
+Client_sku
+created_at
+updated_at
+product_type
+is_active
+companies_id]
+
+bien entendu. et aussi renomme product_type par product_name stp 
+
+

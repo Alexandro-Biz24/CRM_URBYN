@@ -5,11 +5,13 @@ from app.core.admin_deps import require_admin
 from app.core.deps import get_db
 from app.schemas.admin import (
     AdminCatalogDetail,
+    AdminCatalogProductEntry,
     AdminCatalogTreeResponse,
     AdminCatalogUpdate,
     AdminCatalogWrite,
     AdminLoginRequest,
     AdminLoginResponse,
+    AdminProductDetail,
 )
 from app.services import admin as admin_svc
 from app.services.admin import AdminError
@@ -85,6 +87,33 @@ def admin_create_catalog(
 ) -> AdminCatalogDetail:
     try:
         return admin_svc.create_catalog(db, body)
+    except AdminError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get(
+    "/catalogs/{catalog_id}/products",
+    response_model=list[AdminCatalogProductEntry],
+)
+def admin_list_catalog_products(
+    catalog_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> list[AdminCatalogProductEntry]:
+    try:
+        return admin_svc.list_catalog_products(db, catalog_id)
+    except AdminError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/products/{product_id}", response_model=AdminProductDetail)
+def admin_get_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> AdminProductDetail:
+    try:
+        return admin_svc.get_product_detail(db, product_id)
     except AdminError as exc:
         raise _http_error(exc) from exc
 

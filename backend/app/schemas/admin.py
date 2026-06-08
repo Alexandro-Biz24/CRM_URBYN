@@ -60,3 +60,33 @@ class AdminCatalogUpdate(BaseModel):
     description: str = Field(..., min_length=1)
     is_active: bool = True
     attribute_names: list[str] = Field(default_factory=list)
+
+
+class AdminCatalogProductEntry(BaseModel):
+    product_id: int
+    admin_sku: str
+    product_name: str
+    company_name: str
+    price: float
+    currency: str
+    is_active: bool
+
+
+class AdminProductAttributeOut(BaseModel):
+    name: str
+    value: str | None
+
+
+class AdminProductDetail(BaseModel):
+    id: int
+    admin_sku: str
+    client_sku: str
+    product_name: str
+    company_name: str
+    company_tva: str
+    price: float
+    currency: str
+    is_active: bool
+    catalog_names: list[str] = []
+    mandatory_attributes: list[AdminProductAttributeOut] = []
+    free_attributes: list[AdminProductAttributeOut] = []

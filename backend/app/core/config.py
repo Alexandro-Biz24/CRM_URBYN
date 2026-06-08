@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
 
     # Expéditeur (Resend ou SMTP)
-    EMAIL_FROM: str = "Urbyn <noreply@urbyn.fr>"
+    EMAIL_FROM: str = "Urbyn <noreply@urbanize.site>"
 
     # Resend — https://resend.com (recommandé, simple)
     RESEND_API_KEY: str | None = None

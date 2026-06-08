@@ -6,14 +6,19 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.repositories import admin_catalog_repo as repo
+from app.repositories import product_price_repo
+from app.repositories import supplier_portal_repo as portal_repo
 from app.schemas.admin import (
     AdminAttributeDefinitionOut,
     AdminCatalogDetail,
     AdminCatalogNode,
+    AdminCatalogProductEntry,
     AdminCatalogTreeResponse,
     AdminCatalogUpdate,
     AdminCatalogWrite,
     AdminLoginResponse,
+    AdminProductAttributeOut,
+    AdminProductDetail,
 )
 
 
@@ -119,6 +124,61 @@ def update_catalog(
     db.commit()
     db.refresh(c)
     return get_catalog_detail(db, c.id)
+
+
+def list_catalog_products(db: Session, catalog_id: int) -> list[AdminCatalogProductEntry]:
+    c = repo.get_catalog(db, catalog_id)
+    if c is None:
+        raise AdminError("not_found", "Catalogue introuvable.")
+    rows = repo.list_catalog_products(db, catalog_id)
+    result: list[AdminCatalogProductEntry] = []
+    for product, company in rows:
+        latest = product_price_repo.get_latest_price(db, product.id)
+        result.append(
+            AdminCatalogProductEntry(
+                product_id=product.id,
+                admin_sku=product.admin_sku,
+                product_name=product.product_name,
+                company_name=company.company_name,
+                price=float(latest.price) if latest else 0.0,
+                currency=latest.currency if latest else "EUR",
+                is_active=product.is_active,
+            )
+        )
+    return result
+
+
+def get_product_detail(db: Session, product_id: int) -> AdminProductDetail:
+    product = repo.get_product(db, product_id)
+    if product is None:
+        raise AdminError("not_found", "Produit introuvable.")
+    company = product.company
+    latest = product_price_repo.get_latest_price(db, product.id)
+    mandatory = [
+        AdminProductAttributeOut(
+            name=f"{defn.attribute_name} ({defn.catalog_id})",
+            value=val.value,
+        )
+        for val, defn in portal_repo.list_mandatory_attribute_values(db, product.id)
+    ]
+    free_attrs = [
+        AdminProductAttributeOut(name=a.name, value=a.value)
+        for a in sorted(product.attributes, key=lambda x: x.name.lower())
+    ]
+    return AdminProductDetail(
+        id=product.id,
+        admin_sku=product.admin_sku,
+        client_sku=product.client_sku,
+        product_name=product.product_name,
+        company_name=company.company_name if company else "—",
+        company_tva=product.company_tva_intra_com,
+        price=float(latest.price) if latest else 0.0,
+        currency=latest.currency if latest else "EUR",
+        is_active=product.is_active,
+        catalog_names=repo.list_product_catalog_names(db, product.id),
+        mandatory_attributes=mandatory,
+        free_attributes=free_attrs,
+    )
 
 
 def delete_catalog(db: Session, catalog_id: int) -> None:

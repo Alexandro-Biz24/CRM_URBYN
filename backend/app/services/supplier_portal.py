@@ -15,6 +15,8 @@ from app.schemas.supplier_portal import (
     ProductAttributOut,
     ProductAttributUpdateBody,
     ProductAttributWrite,
+    ProductCatalogGroup,
+    ProductCatalogGroupsResponse,
     ProductListEntry,
     ProductOut,
     ProductWrite,
@@ -201,6 +203,48 @@ def update_catalog(
     db.commit()
     db.refresh(c)
     return _catalog_out(c)
+
+
+def list_products_grouped(
+    db: Session,
+    session: PortalSession,
+) -> ProductCatalogGroupsResponse:
+    ctx = _resolve_context(db, session)
+    rows = repo.list_products(db, ctx.company_id, None)
+    groups: dict[int, ProductCatalogGroup] = {}
+    seen: dict[int, set[int]] = {}
+    for p, cat in rows:
+        if cat.id not in groups:
+            groups[cat.id] = ProductCatalogGroup(
+                catalog_id=cat.id,
+                catalog_name=cat.name,
+                products=[],
+            )
+            seen[cat.id] = set()
+        if p.id in seen[cat.id]:
+            continue
+        seen[cat.id].add(p.id)
+        latest = product_price_repo.get_latest_price(db, p.id)
+        catalog_ids = repo.get_product_catalog_ids(db, p.id)
+        primary = catalog_ids[0] if catalog_ids else cat.id
+        groups[cat.id].products.append(
+            ProductListEntry(
+                product_id=p.id,
+                admin_sku=p.admin_sku,
+                client_sku=p.client_sku,
+                product_name=p.product_name,
+                primary_catalog_id=primary,
+                catalog_name=cat.name,
+                price=float(latest.price) if latest else 0.0,
+                currency=latest.currency if latest else "EUR",
+                is_active=p.is_active,
+            )
+        )
+    ordered = sorted(
+        groups.values(),
+        key=lambda g: (g.catalog_name or "").lower(),
+    )
+    return ProductCatalogGroupsResponse(groups=ordered)
 
 
 def list_products(

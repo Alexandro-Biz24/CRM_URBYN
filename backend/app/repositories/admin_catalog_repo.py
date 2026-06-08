@@ -9,6 +9,7 @@ from app.models import (
     Catalog,
     CatalogAttributeDefinition,
     CatalogProduct,
+    Company,
     Product,
     ProductAttribut,
     ProductOrder,
@@ -50,6 +51,33 @@ def list_all_catalogs(db: Session) -> list[Catalog]:
 
 def get_catalog(db: Session, catalog_id: int) -> Catalog | None:
     return db.get(Catalog, catalog_id)
+
+
+def get_product(db: Session, product_id: int) -> Product | None:
+    return db.get(Product, product_id)
+
+
+def list_catalog_products(
+    db: Session, catalog_id: int
+) -> list[tuple[Product, Company]]:
+    stmt = (
+        select(Product, Company)
+        .join(CatalogProduct, CatalogProduct.product_id == Product.id)
+        .join(Company, Company.tva_intra_com == Product.company_tva_intra_com)
+        .where(CatalogProduct.catalog_id == catalog_id)
+        .order_by(Product.product_name)
+    )
+    return list(db.execute(stmt).all())
+
+
+def list_product_catalog_names(db: Session, product_id: int) -> list[str]:
+    stmt = (
+        select(Catalog.name)
+        .join(CatalogProduct, CatalogProduct.catalog_id == Catalog.id)
+        .where(CatalogProduct.product_id == product_id)
+        .order_by(Catalog.name)
+    )
+    return [n for n in db.scalars(stmt).all() if n]
 
 
 def list_attribute_definitions(db: Session, catalog_id: int) -> list[CatalogAttributeDefinition]:
