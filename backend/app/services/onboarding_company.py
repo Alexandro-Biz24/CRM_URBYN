@@ -28,7 +28,15 @@ def list_company_options(db: Session) -> list[dict]:
     ]
 
 
-def complete_supplier_company(
+ALLOWED_COMPANY_ONBOARDING_ROLES = frozenset(
+    {
+        ROLE_BY_ACCOUNT_TYPE[AccountType.partner],
+        ROLE_BY_ACCOUNT_TYPE[AccountType.buyer],
+    }
+)
+
+
+def complete_user_company(
     db: Session,
     payload: OnboardingCompanyRequest,
 ) -> OnboardingCompanyResponse:
@@ -56,15 +64,23 @@ def complete_supplier_company(
         raise OnboardingCompanyError("email_not_verified", "Email non confirmé.")
 
     role_name = user.role.role_name if user.role else None
-    if role_name != ROLE_BY_ACCOUNT_TYPE[AccountType.partner]:
+    if role_name not in ALLOWED_COMPANY_ONBOARDING_ROLES:
         raise OnboardingCompanyError(
             "role_mismatch",
-            "Cette étape est réservée aux comptes partenaire (fournisseur).",
+            "Cette étape est réservée aux comptes client ou partenaire.",
         )
 
     if has_existing:
         return _link_existing_company(db, user, payload)
     return _create_new_company(db, user, payload)
+
+
+def complete_supplier_company(
+    db: Session,
+    payload: OnboardingCompanyRequest,
+) -> OnboardingCompanyResponse:
+    """Alias rétrocompatible — préférer complete_user_company."""
+    return complete_user_company(db, payload)
 
 
 def _link_existing_company(

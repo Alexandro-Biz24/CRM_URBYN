@@ -16,3 +16,7 @@ DB cmd :
 ⚠️ **Pas** `app.api:app` — l'application FastAPI est dans `app/main.py` → `app.main:app`.
 
 Health check : `GET /health` — Swagger : `/docs`
+
+
+Admin accès : admin01 / AdMiN_24$@26
+

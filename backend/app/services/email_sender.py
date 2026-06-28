@@ -152,3 +152,44 @@ def send_verification_email(*, to_email: str, code: str, ttl_minutes: int) -> No
         _send_via_smtp(to_email=to_email, subject=subject, html=html, text=text)
 
     logger.info("Email de vérification envoyé à %s", to_email)
+
+
+def send_shipping_quote_email(
+    *,
+    buyer_email: str,
+    buyer_company: str,
+    product_name: str,
+    product_id: int,
+    quantity: int,
+    seller_company: str,
+    delivery_street: str,
+    delivery_zip_code: str,
+    delivery_city: str,
+    delivery_state: str | None,
+    buyer_message: str | None,
+) -> None:
+    if not settings.email_configured:
+        logger.warning("DEV — devis livraison pour produit %s (email non configuré)", product_id)
+        return
+
+    subject = f"Urbyn — Demande de devis livraison ({product_name})"
+    addr = f"{delivery_street}, {delivery_zip_code} {delivery_city}"
+    if delivery_state:
+        addr += f" ({delivery_state})"
+    text = (
+        f"Demande de devis livraison\n\n"
+        f"Acheteur : {buyer_email} ({buyer_company})\n"
+        f"Produit : {product_name} (id {product_id})\n"
+        f"Quantité : {quantity}\n"
+        f"Fournisseur : {seller_company}\n"
+        f"Adresse : {addr}\n"
+        f"Message : {buyer_message or '—'}\n"
+    )
+    html = f"<pre>{text}</pre>"
+
+    if settings.resend_configured:
+        _send_via_resend(to_email=buyer_email, subject=subject, html=html, text=text)
+    else:
+        _send_via_smtp(to_email=buyer_email, subject=subject, html=html, text=text)
+
+    logger.info("Demande de devis livraison envoyée pour produit %s", product_id)

@@ -38,10 +38,19 @@ def user_to_session(user, account_type: AccountType) -> SessionUser:
 
 
 def login(db: Session, payload: LoginRequest) -> SessionUser:
-    user = auth_repo.get_user_with_role_profile(db, str(payload.email))
+    role_name = ROLE_BY_ACCOUNT_TYPE[payload.account_type]
+    role_id = auth_repo.get_role_id_by_name(db, role_name)
+    if role_id is None:
+        raise AuthError("role_missing", f"Le rôle « {role_name} » est introuvable en base.")
+
+    user = auth_repo.get_user_with_role_profile_by_role_id(db, str(payload.email), role_id)
 
     if user is None:
-        raise AuthError("invalid_credentials", "Email ou mot de passe incorrect.")
+        label = "client" if payload.account_type == AccountType.buyer else "partenaire"
+        raise AuthError(
+            "invalid_credentials",
+            f"Aucun compte {label} trouvé avec cet email.",
+        )
 
     if not user.is_active:
         raise AuthError("inactive_account", "Ce compte est désactivé.")
@@ -53,15 +62,6 @@ def login(db: Session, payload: LoginRequest) -> SessionUser:
         raise AuthError(
             "email_not_verified",
             "Votre email n'est pas encore confirmé. Vérifiez votre boîte mail ou renvoyez un code.",
-        )
-
-    expected_role = ROLE_BY_ACCOUNT_TYPE[payload.account_type]
-    role_name = user.role.role_name if user.role is not None else None
-
-    if role_name != expected_role:
-        raise AuthError(
-            "role_mismatch",
-            f"Ce compte n'est pas enregistré en tant que {expected_role.lower()}.",
         )
 
     return user_to_session(user, payload.account_type)

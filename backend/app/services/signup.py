@@ -1,18 +1,20 @@
 from __future__ import annotations
 
+import logging
 import secrets
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.repositories import auth_repo
 from app.schemas.auth import AccountType, SessionUser
 from app.services.auth import ROLE_BY_ACCOUNT_TYPE, user_to_session
 from app.services.email_sender import EmailDeliveryError, send_verification_email
 
 CODE_LENGTH = 6
+logger = logging.getLogger(__name__)
 
 
 def _generate_code() -> str:
@@ -30,8 +32,20 @@ class SignupError(Exception):
         super().__init__(message)
 
 
-def check_email_availability(db: Session, email: str) -> dict:
-    user = auth_repo.get_user_by_email(db, email)
+def _role_id_for_account_type(db: Session, account_type: AccountType) -> int:
+    role_name = ROLE_BY_ACCOUNT_TYPE[account_type]
+    role_id = auth_repo.get_role_id_by_name(db, role_name)
+    if role_id is None:
+        raise SignupError(
+            "role_missing",
+            f"Le rôle « {role_name} » est introuvable en base.",
+        )
+    return role_id
+
+
+def check_email_availability(db: Session, email: str, account_type: AccountType) -> dict:
+    role_id = _role_id_for_account_type(db, account_type)
+    user = auth_repo.get_user_by_email_and_role_id(db, email, role_id)
     if user is None:
         return {"exists": False, "available": True, "email_verified": None}
     return {
@@ -41,7 +55,22 @@ def check_email_availability(db: Session, email: str) -> dict:
     }
 
 
-def _dispatch_verification_email(*, to_email: str, code: str, ttl_minutes: int) -> None:
+def _dispatch_verification_email(
+    *,
+    to_email: str,
+    code: str,
+    ttl_minutes: int,
+    account_type: AccountType | None = None,
+) -> None:
+    if settings.APP_ENV == "development":
+        role_label = account_type.value if account_type else "?"
+        logger.warning(
+            "DEV — code OTP pour %s (%s) : %s (valable %s min)",
+            to_email,
+            role_label,
+            code,
+            ttl_minutes,
+        )
     try:
         send_verification_email(to_email=to_email, code=code, ttl_minutes=ttl_minutes)
     except EmailDeliveryError as exc:
@@ -52,18 +81,12 @@ def start_signup(db: Session, *, email: str, password: str, account_type: Accoun
     if len(password) < 8:
         raise SignupError("weak_password", "Le mot de passe doit contenir au moins 8 caractères.")
 
-    if auth_repo.email_exists(db, email):
+    role_id = _role_id_for_account_type(db, account_type)
+    if auth_repo.email_exists_for_role(db, email, role_id):
+        label = "client" if account_type == AccountType.buyer else "partenaire"
         raise SignupError(
             "email_taken",
-            "Un compte existe déjà avec cet email.",
-        )
-
-    role_name = ROLE_BY_ACCOUNT_TYPE[account_type]
-    role_id = auth_repo.get_role_id_by_name(db, role_name)
-    if role_id is None:
-        raise SignupError(
-            "role_missing",
-            f"Le rôle « {role_name} » est introuvable en base.",
+            f"Un compte {label} existe déjà avec cet email.",
         )
 
     user = auth_repo.create_pending_user(
@@ -87,7 +110,12 @@ def start_signup(db: Session, *, email: str, password: str, account_type: Accoun
     )
 
     try:
-        _dispatch_verification_email(to_email=user.email, code=code, ttl_minutes=ttl_minutes)
+        _dispatch_verification_email(
+            to_email=user.email,
+            code=code,
+            ttl_minutes=ttl_minutes,
+            account_type=account_type,
+        )
     except SignupError:
         db.rollback()
         raise
@@ -102,19 +130,23 @@ def start_signup(db: Session, *, email: str, password: str, account_type: Accoun
     }
 
 
-def verify_signup_code(db: Session, *, email: str, code: str) -> SessionUser:
+def verify_signup_code(
+    db: Session,
+    *,
+    email: str,
+    code: str,
+    account_type: AccountType,
+) -> SessionUser:
     normalized_code = code.strip()
     if len(normalized_code) != CODE_LENGTH or not normalized_code.isdigit():
         raise SignupError("invalid_code_format", "Le code doit contenir exactement 6 chiffres.")
 
-    user = auth_repo.get_user_with_role_profile(db, email)
+    role_id = _role_id_for_account_type(db, account_type)
+    user = auth_repo.get_user_with_role_profile_by_role_id(db, email, role_id)
     if user is None:
         raise SignupError("user_not_found", "Compte introuvable.")
 
     if user.email_verified:
-        account_type = _account_type_from_role(user.role.role_name if user.role else None)
-        if account_type is None:
-            raise SignupError("role_missing", "Rôle utilisateur invalide.")
         return user_to_session(user, account_type)
 
     record = auth_repo.get_latest_valid_code(db, user.id)
@@ -132,18 +164,20 @@ def verify_signup_code(db: Session, *, email: str, code: str) -> SessionUser:
     db.commit()
 
     db.refresh(user)
-    account_type = _account_type_from_role(user.role.role_name if user.role else None)
-    if account_type is None:
-        raise SignupError("role_missing", "Rôle utilisateur invalide.")
     return user_to_session(user, account_type)
 
 
-def resend_verification_code(db: Session, *, email: str, password: str) -> dict:
-    user = auth_repo.get_user_by_email(db, email)
+def resend_verification_code(
+    db: Session,
+    *,
+    email: str,
+    password: str,
+    account_type: AccountType,
+) -> dict:
+    role_id = _role_id_for_account_type(db, account_type)
+    user = auth_repo.get_user_by_email_and_role_id(db, email, role_id)
     if user is None:
         raise SignupError("user_not_found", "Compte introuvable.")
-
-    from app.core.security import verify_password
 
     if not verify_password(password, user.password_hash):
         raise SignupError("invalid_credentials", "Mot de passe incorrect.")
@@ -165,7 +199,12 @@ def resend_verification_code(db: Session, *, email: str, password: str) -> dict:
     )
 
     try:
-        _dispatch_verification_email(to_email=user.email, code=code, ttl_minutes=ttl_minutes)
+        _dispatch_verification_email(
+            to_email=user.email,
+            code=code,
+            ttl_minutes=ttl_minutes,
+            account_type=account_type,
+        )
     except SignupError:
         db.rollback()
         raise
@@ -176,11 +215,3 @@ def resend_verification_code(db: Session, *, email: str, password: str) -> dict:
         "expires_in_seconds": ttl,
         "message": "Un nouveau code a été envoyé à votre adresse email.",
     }
-
-
-def _account_type_from_role(role_name: str | None) -> AccountType | None:
-    if role_name == "Client":
-        return AccountType.buyer
-    if role_name == "Fournisseur":
-        return AccountType.partner
-    return None

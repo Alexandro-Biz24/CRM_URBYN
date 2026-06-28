@@ -26,11 +26,13 @@ class SignupStartRequest(BaseModel):
 class SignupVerifyRequest(BaseModel):
     email: EmailStr
     code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+    account_type: AccountType
 
 
 class SignupResendRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=1)
+    account_type: AccountType
 
 
 class SessionUser(BaseModel):

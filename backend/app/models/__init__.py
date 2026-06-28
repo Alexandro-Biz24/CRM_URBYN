@@ -24,6 +24,8 @@ from .product_attribut import ProductAttribut
 from .product_mandatory_attribute_value import ProductMandatoryAttributeValue
 
 # Commerce
+from .cart import Cart
+from .cart_item import CartItem
 from .shipping_rate import ShippingRate
 
 # Orders & payments

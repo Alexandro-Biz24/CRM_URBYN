@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_db
 from app.schemas.auth import (
+    AccountType,
     EmailCheckResponse,
     LoginRequest,
     SessionUser,
@@ -13,6 +14,7 @@ from app.schemas.auth import (
     SignupVerifyRequest,
 )
 from app.schemas.onboarding import OnboardingProfileResponse, OnboardingProfileUpdate
+from app.schemas.onboarding_prefill import SiblingOnboardingPrefillResponse
 from app.schemas.onboarding_company import (
     CompanyOption,
     EntrepriseSearchResult,
@@ -22,7 +24,8 @@ from app.schemas.onboarding_company import (
 from app.services.auth import AuthError, login
 from app.services.entreprise_search import search_french_companies
 from app.services.onboarding import OnboardingError, complete_user_profile
-from app.services.onboarding_company import OnboardingCompanyError, complete_supplier_company, list_company_options
+from app.services.onboarding_prefill import get_sibling_onboarding_prefill
+from app.services.onboarding_company import OnboardingCompanyError, complete_user_company, list_company_options
 from app.services.signup import SignupError, check_email_availability, resend_verification_code, start_signup, verify_signup_code
 
 router = APIRouter()
@@ -58,9 +61,10 @@ def _http_error(
 )
 def auth_check_email(
     email: str = Query(..., min_length=3),
+    account_type: AccountType = Query(...),
     db: Session = Depends(get_db),
 ) -> EmailCheckResponse:
-    return EmailCheckResponse(**check_email_availability(db, email))
+    return EmailCheckResponse(**check_email_availability(db, email, account_type))
 
 
 @router.post(
@@ -95,7 +99,12 @@ def auth_signup_verify(
     db: Session = Depends(get_db),
 ) -> SessionUser:
     try:
-        return verify_signup_code(db, email=str(payload.email), code=payload.code)
+        return verify_signup_code(
+            db,
+            email=str(payload.email),
+            code=payload.code,
+            account_type=payload.account_type,
+        )
     except SignupError as exc:
         raise _http_error(exc) from exc
 
@@ -114,6 +123,7 @@ def auth_signup_resend(
             db,
             email=str(payload.email),
             password=payload.password,
+            account_type=payload.account_type,
         )
         return SignupResendResponse(**result)
     except SignupError as exc:
@@ -144,9 +154,22 @@ def auth_onboarding_profile(
 
 
 @router.get(
+    "/onboarding/sibling-prefill",
+    response_model=SiblingOnboardingPrefillResponse,
+    summary="Préremplissage profil/société depuis l'autre compte (même email)",
+)
+def auth_onboarding_sibling_prefill(
+    user_id: int = Query(...),
+    email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+) -> SiblingOnboardingPrefillResponse:
+    return get_sibling_onboarding_prefill(db, user_id=user_id, email=email)
+
+
+@router.get(
     "/onboarding/companies",
     response_model=list[CompanyOption],
-    summary="Liste des sociétés (dropdown affiliation fournisseur)",
+    summary="Liste des sociétés (dropdown affiliation client / fournisseur)",
 )
 def auth_onboarding_companies(db: Session = Depends(get_db)) -> list[CompanyOption]:
     return [CompanyOption(**row) for row in list_company_options(db)]
@@ -166,14 +189,14 @@ def auth_onboarding_company_search(
 @router.post(
     "/onboarding/company",
     response_model=OnboardingCompanyResponse,
-    summary="Rattacher ou créer la société (étape finale fournisseur)",
+    summary="Rattacher ou créer la société (étape finale client / fournisseur)",
 )
 def auth_onboarding_company(
     payload: OnboardingCompanyRequest,
     db: Session = Depends(get_db),
 ) -> OnboardingCompanyResponse:
     try:
-        return complete_supplier_company(db=db, payload=payload)
+        return complete_user_company(db=db, payload=payload)
     except OnboardingCompanyError as exc:
         raise _http_error(exc) from exc
 

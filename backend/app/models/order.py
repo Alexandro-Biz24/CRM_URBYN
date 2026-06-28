@@ -12,9 +12,6 @@ class Order(Base):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    seller_id: Mapped[int] = mapped_column(
-        "seller", ForeignKey("users.id"), nullable=False
-    )
     buyer_id: Mapped[int] = mapped_column(
         "buyer", ForeignKey("users.id"), nullable=False
     )
@@ -33,9 +30,6 @@ class Order(Base):
         DateTime, default=datetime.utcnow, nullable=False
     )
 
-    seller_user: Mapped["User"] = relationship(
-        "User", foreign_keys=[seller_id], back_populates="orders_as_seller"
-    )
     buyer_user: Mapped["User"] = relationship(
         "User", foreign_keys=[buyer_id], back_populates="orders_as_buyer"
     )

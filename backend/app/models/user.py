@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -10,9 +10,12 @@ from app.db.base import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("email", "role_id", name="uq_users_email_role"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role_id: Mapped[int | None] = mapped_column(ForeignKey("roles.id"))
     mobile_phone: Mapped[str | None] = mapped_column(String(40))
@@ -36,17 +39,20 @@ class User(Base):
     company_payment_methods: Mapped[list["CompanyPaymentMethod"]] = relationship(
         "CompanyPaymentMethod", back_populates="user", cascade="all, delete-orphan"
     )
-    orders_as_seller: Mapped[list["Order"]] = relationship(
-        "Order",
-        foreign_keys="Order.seller_id",
-        back_populates="seller_user",
-        cascade="all, delete-orphan",
-    )
     orders_as_buyer: Mapped[list["Order"]] = relationship(
         "Order",
         foreign_keys="Order.buyer_id",
         back_populates="buyer_user",
         cascade="all, delete-orphan",
+    )
+    product_orders_as_seller: Mapped[list["ProductOrder"]] = relationship(
+        "ProductOrder",
+        foreign_keys="ProductOrder.seller_id",
+        back_populates="seller_user",
+        cascade="all, delete-orphan",
+    )
+    carts: Mapped[list["Cart"]] = relationship(
+        "Cart", back_populates="buyer", cascade="all, delete-orphan"
     )
     reviews: Mapped[list["Review"]] = relationship(
         "Review", back_populates="user", cascade="all, delete-orphan"

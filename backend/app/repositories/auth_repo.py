@@ -19,6 +19,15 @@ def get_user_by_email(db: Session, email: str) -> User | None:
     return db.scalar(stmt)
 
 
+def get_user_by_email_and_role_id(db: Session, email: str, role_id: int) -> User | None:
+    normalized = normalize_email(email)
+    stmt = select(User).where(
+        func.lower(User.email) == normalized,
+        User.role_id == role_id,
+    )
+    return db.scalar(stmt)
+
+
 def get_user_with_role_profile(db: Session, email: str) -> User | None:
     normalized = normalize_email(email)
     stmt = (
@@ -29,8 +38,26 @@ def get_user_with_role_profile(db: Session, email: str) -> User | None:
     return db.scalar(stmt)
 
 
+def get_user_with_role_profile_by_role_id(
+    db: Session,
+    email: str,
+    role_id: int,
+) -> User | None:
+    normalized = normalize_email(email)
+    stmt = (
+        select(User)
+        .options(joinedload(User.role), joinedload(User.profile))
+        .where(func.lower(User.email) == normalized, User.role_id == role_id)
+    )
+    return db.scalar(stmt)
+
+
 def email_exists(db: Session, email: str) -> bool:
     return get_user_by_email(db, email) is not None
+
+
+def email_exists_for_role(db: Session, email: str, role_id: int) -> bool:
+    return get_user_by_email_and_role_id(db, email, role_id) is not None
 
 
 def get_role_id_by_name(db: Session, role_name: str) -> int | None:

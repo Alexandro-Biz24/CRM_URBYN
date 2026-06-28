@@ -4,6 +4,7 @@ from app.api.v1.endpoints import (
     admin,
     auth,
     client_orders_v2,
+    client_portal,
     clients,
     clients_v2,
     metrics,
@@ -61,6 +62,12 @@ api_router.include_router(
     client_orders_v2.router,
     prefix="/clients/v2",
     tags=["clients-orders-v2"],
+)
+
+api_router.include_router(
+    client_portal.router,
+    prefix="/client-portal",
+    tags=["client-portal"],
 )
 
 api_router.include_router(
