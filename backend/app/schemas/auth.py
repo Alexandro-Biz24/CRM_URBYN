@@ -65,3 +65,27 @@ class SignupStartResponse(BaseModel):
 class SignupResendResponse(BaseModel):
     expires_in_seconds: int
     message: str
+
+
+class PasswordResetStartRequest(BaseModel):
+    email: EmailStr
+    first_name: str = Field(..., min_length=1)
+    last_name: str = Field(..., min_length=1)
+    account_type: AccountType
+
+
+class PasswordResetStartResponse(BaseModel):
+    email: EmailStr
+    expires_in_seconds: int
+    message: str
+
+
+class PasswordResetConfirmRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+    account_type: AccountType
+    new_password: str = Field(..., min_length=8)
+
+
+class PasswordResetConfirmResponse(BaseModel):
+    message: str

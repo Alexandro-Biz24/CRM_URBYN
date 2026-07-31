@@ -12,10 +12,11 @@ from app.models import (
     Company,
     Product,
     ProductAttribut,
+    ProductMandatoryAttributeValue,
     ProductOrder,
     ProductPriceHistory,
 )
-from app.schemas.admin import AdminCatalogUpdate, AdminCatalogWrite
+from app.schemas.admin import AdminCatalogAttributeIn, AdminCatalogUpdate, AdminCatalogWrite
 
 
 def _is_root(catalog: Catalog) -> bool:
@@ -80,6 +81,14 @@ def list_product_catalog_names(db: Session, product_id: int) -> list[str]:
     return [n for n in db.scalars(stmt).all() if n]
 
 
+def list_catalog_product_ids(db: Session, catalog_id: int) -> list[int]:
+    return list(
+        db.scalars(
+            select(CatalogProduct.product_id).where(CatalogProduct.catalog_id == catalog_id)
+        ).all()
+    )
+
+
 def list_attribute_definitions(db: Session, catalog_id: int) -> list[CatalogAttributeDefinition]:
     stmt = (
         select(CatalogAttributeDefinition)
@@ -89,26 +98,118 @@ def list_attribute_definitions(db: Session, catalog_id: int) -> list[CatalogAttr
     return list(db.scalars(stmt).all())
 
 
-def sync_attribute_definitions(db: Session, catalog_id: int, names: list[str]) -> None:
-    cleaned = [n.strip() for n in names if n.strip()]
-    unique_names = list(dict.fromkeys(cleaned))
+def _ensure_product_values_for_definition(
+    db: Session,
+    catalog_id: int,
+    definition: CatalogAttributeDefinition,
+    *,
+    fill_missing_with: str,
+) -> None:
+    """Garantit une ligne de valeur pour chaque produit du catalogue (idempotent)."""
+    product_ids = list_catalog_product_ids(db, catalog_id)
+    if not product_ids:
+        return
+    existing_product_ids = set(
+        db.scalars(
+            select(ProductMandatoryAttributeValue.product_id).where(
+                ProductMandatoryAttributeValue.catalog_attribute_definition_id
+                == definition.id,
+                ProductMandatoryAttributeValue.product_id.in_(product_ids),
+            )
+        ).all()
+    )
+    now = datetime.utcnow()
+    for product_id in product_ids:
+        if product_id in existing_product_ids:
+            continue
+        db.add(
+            ProductMandatoryAttributeValue(
+                product_id=product_id,
+                catalog_attribute_definition_id=definition.id,
+                value=fill_missing_with,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+
+def sync_attribute_definitions(
+    db: Session,
+    catalog_id: int,
+    attributes: list[AdminCatalogAttributeIn],
+) -> None:
+    """
+    Synchronise le schéma d'attributs obligatoires du catalogue :
+    - suppression d'une définition → CASCADE des valeurs produit ;
+    - ajout d'une définition → backfill de tous les produits avec default_value ;
+    - définition conservée → MAJ default_value + backfill des produits manquants.
+    """
+    cleaned: list[AdminCatalogAttributeIn] = []
+    seen: set[str] = set()
+    for attr in attributes:
+        name = attr.attribute_name.strip()
+        default = attr.default_value.strip()
+        if not name or not default:
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(
+            AdminCatalogAttributeIn(attribute_name=name, default_value=default)
+        )
+
     existing = list_attribute_definitions(db, catalog_id)
     existing_by_name = {a.attribute_name.lower(): a for a in existing}
-    target_lower = {n.lower() for n in unique_names}
+    target_lower = {a.attribute_name.lower() for a in cleaned}
 
     for attr in existing:
         if attr.attribute_name.lower() not in target_lower:
             db.delete(attr)
 
-    for name in unique_names:
-        if name.lower() not in existing_by_name:
-            db.add(
-                CatalogAttributeDefinition(
-                    catalog_id=catalog_id,
-                    attribute_name=name,
-                )
-            )
     db.flush()
+
+    for item in cleaned:
+        key = item.attribute_name.lower()
+        current = existing_by_name.get(key)
+        if current is None:
+            current = CatalogAttributeDefinition(
+                catalog_id=catalog_id,
+                attribute_name=item.attribute_name,
+                default_value=item.default_value,
+            )
+            db.add(current)
+            db.flush()
+            _ensure_product_values_for_definition(
+                db,
+                catalog_id,
+                current,
+                fill_missing_with=item.default_value,
+            )
+        else:
+            current.default_value = item.default_value
+            current.updated_at = datetime.utcnow()
+            _ensure_product_values_for_definition(
+                db,
+                catalog_id,
+                current,
+                fill_missing_with=item.default_value,
+            )
+
+    db.flush()
+
+
+def resolve_catalog_attributes(
+    data: AdminCatalogWrite | AdminCatalogUpdate,
+) -> list[AdminCatalogAttributeIn]:
+    if data.attributes:
+        return list(data.attributes)
+    # Legacy: noms seuls → pas de backfill fiable (défaut vide interdit)
+    return [
+        AdminCatalogAttributeIn(attribute_name=n.strip(), default_value="—")
+        for n in data.attribute_names
+        if n.strip()
+    ]
 
 
 def get_breadcrumb(db: Session, catalog: Catalog) -> list[str]:
@@ -144,7 +245,7 @@ def create_catalog(db: Session, data: AdminCatalogWrite) -> Catalog:
     if parent_id is None:
         catalog.parent_id = catalog.id
         db.flush()
-    sync_attribute_definitions(db, catalog.id, data.attribute_names)
+    sync_attribute_definitions(db, catalog.id, resolve_catalog_attributes(data))
     return catalog
 
 
@@ -153,7 +254,7 @@ def update_catalog(db: Session, catalog: Catalog, data: AdminCatalogUpdate) -> C
     catalog.description = data.description.strip()
     catalog.is_active = data.is_active
     catalog.updated_at = datetime.utcnow()
-    sync_attribute_definitions(db, catalog.id, data.attribute_names)
+    sync_attribute_definitions(db, catalog.id, resolve_catalog_attributes(data))
     db.flush()
     return catalog
 

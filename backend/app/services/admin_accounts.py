@@ -67,13 +67,8 @@ def delete_user(db: Session, user_id: int) -> None:
     try:
         repo.delete_user(db, user_id)
         db.commit()
-    except ValueError as exc:
+    except Exception:
         db.rollback()
-        if str(exc) == "has_orders":
-            raise AdminAccountsError(
-                "has_orders",
-                "Impossible de supprimer : commandes liées à cet utilisateur.",
-            ) from exc
         raise
 
 

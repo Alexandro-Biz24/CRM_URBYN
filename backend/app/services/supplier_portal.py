@@ -174,7 +174,10 @@ def list_catalog_attribute_definitions(
         raise PortalError("not_found", "Catalogue introuvable.")
     return [
         CatalogAttributeDefinitionOut(
-            id=d.id, catalog_id=d.catalog_id, attribute_name=d.attribute_name
+            id=d.id,
+            catalog_id=d.catalog_id,
+            attribute_name=d.attribute_name,
+            default_value=getattr(d, "default_value", None) or "",
         )
         for d in repo.list_catalog_attribute_definitions(db, catalog_id)
     ]

@@ -11,6 +11,11 @@ from app.schemas.client_portal import (
     CartItemUpdate,
     CartOut,
     CartSessionBody,
+    CartSnapshotOut,
+    CartSnapshotPut,
+    MassifLeafCatalogsResponse,
+    MassifProductsRequest,
+    MassifProductsResponse,
     ProductWeightFilterRequest,
     ProductWeightFilterResponse,
     ShippingCheckRequest,
@@ -23,12 +28,16 @@ from app.services.client_portal import (
     add_to_cart,
     check_shipping,
     get_cart,
+    get_cart_snapshot,
     get_catalog_navigation,
     get_context,
     get_product_card,
     get_product_detail,
     list_catalog_products,
+    list_massif_leaf_catalogs,
+    list_massif_products,
     list_root_catalogs,
+    put_cart_snapshot,
     remove_cart_item,
     request_shipping_quote,
     search_catalog_and_products,
@@ -126,6 +135,31 @@ def portal_search_products_by_weight(
         raise _http_error(exc) from exc
 
 
+@router.get("/massif/leaf-catalogs", response_model=MassifLeafCatalogsResponse)
+def portal_massif_leaf_catalogs(
+    root_name: str = Query("Massif Type", min_length=1),
+    db: Session = Depends(get_db),
+) -> MassifLeafCatalogsResponse:
+    """Catalogues feuilles (sans enfants) sous la racine Massif Type."""
+    try:
+        return list_massif_leaf_catalogs(db, root_name=root_name)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post("/massif/products", response_model=MassifProductsResponse)
+def portal_massif_products(
+    payload: MassifProductsRequest,
+    root_name: str = Query("Massif Type", min_length=1),
+    db: Session = Depends(get_db),
+) -> MassifProductsResponse:
+    """Produits d'un catalogue feuille Massif, filtrés par poids exact ou fourchette + attributs."""
+    try:
+        return list_massif_products(db, payload, root_name=root_name)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
 @router.get("/products/{product_id}", response_model=BuyerProductCard)
 def portal_product_card(
     product_id: int,
@@ -216,5 +250,28 @@ def portal_delete_cart_item(
 ) -> CartOut:
     try:
         return remove_cart_item(db, session, item_id=item_id)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/cart/snapshot", response_model=CartSnapshotOut)
+def portal_get_cart_snapshot(
+    session: PortalSession = Depends(_session),
+    db: Session = Depends(get_db),
+) -> CartSnapshotOut:
+    try:
+        return get_cart_snapshot(db, session)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.put("/cart/snapshot", response_model=CartSnapshotOut)
+def portal_put_cart_snapshot(
+    payload: CartSnapshotPut,
+    db: Session = Depends(get_db),
+) -> CartSnapshotOut:
+    try:
+        session = PortalSession(user_id=payload.user_id, email=payload.email)
+        return put_cart_snapshot(db, session, items=payload.items)
     except ClientPortalError as exc:
         raise _http_error(exc) from exc

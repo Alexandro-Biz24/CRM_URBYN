@@ -9,6 +9,7 @@ from app.repositories import client_portal_repo as buyer_repo
 from app.repositories import product_price_repo, supplier_portal_repo as repo
 from app.services import buyer_shipping
 from app.schemas.client_portal import (
+    MASSIF_ROOT_DEFAULT,
     BuyerCatalogNavItem,
     BuyerCatalogNavigation,
     BuyerProductCard,
@@ -17,6 +18,12 @@ from app.schemas.client_portal import (
     BuyerShippingOption,
     CartItemOut,
     CartOut,
+    CartSnapshotOut,
+    MassifLeafCatalogOut,
+    MassifLeafCatalogsResponse,
+    MassifProductOut,
+    MassifProductsRequest,
+    MassifProductsResponse,
     ProductAttributeOut,
     ProductWeightFilterItem,
     ProductWeightFilterRequest,
@@ -69,16 +76,25 @@ def _catalog_out(db: Session, catalog: object) -> CatalogOut:
     )
 
 
-def _mandatory_out(product_id: int, db: Session) -> list[MandatoryAttributeValueOut]:
-    return [
-        MandatoryAttributeValueOut(
-            definition_id=defn.id,
-            catalog_id=defn.catalog_id,
-            attribute_name=defn.attribute_name,
-            value=val.value,
+def _mandatory_out(
+    product_id: int,
+    db: Session,
+    *,
+    catalog_id: int | None = None,
+) -> list[MandatoryAttributeValueOut]:
+    rows = []
+    for val, defn in repo.list_mandatory_attribute_values(db, product_id):
+        if catalog_id is not None and defn.catalog_id != catalog_id:
+            continue
+        rows.append(
+            MandatoryAttributeValueOut(
+                definition_id=defn.id,
+                catalog_id=defn.catalog_id,
+                attribute_name=defn.attribute_name,
+                value=val.value,
+            )
         )
-        for val, defn in repo.list_mandatory_attribute_values(db, product_id)
-    ]
+    return rows
 
 
 def _product_card(db: Session, product, company) -> BuyerProductCard:
@@ -415,6 +431,38 @@ def remove_cart_item(db: Session, session: PortalSession, *, item_id: int) -> Ca
     return _cart_out(db, cart)
 
 
+def get_cart_snapshot(db: Session, session: PortalSession) -> CartSnapshotOut:
+    ctx = _require_client_session(db, session)
+    cart = cart_repo.get_or_create_open_cart(db, ctx.user_id)
+    db.commit()
+    return CartSnapshotOut(
+        cart_id=cart.id,
+        items=cart_repo.get_cart_front_items(cart),
+        updated_at=cart.updated_at,
+    )
+
+
+def put_cart_snapshot(
+    db: Session,
+    session: PortalSession,
+    *,
+    items: list[dict],
+) -> CartSnapshotOut:
+    ctx = _require_client_session(db, session)
+    cart = cart_repo.get_or_create_open_cart(db, ctx.user_id)
+    # Garde-fou taille : panier configurateur raisonnable
+    if len(items) > 200:
+        raise ClientPortalError("payload_too_large", "Panier trop volumineux.")
+    cart_repo.save_cart_front_payload(db, cart, items)
+    db.commit()
+    db.refresh(cart)
+    return CartSnapshotOut(
+        cart_id=cart.id,
+        items=cart_repo.get_cart_front_items(cart),
+        updated_at=cart.updated_at,
+    )
+
+
 _POIDS_ATTR_NAMES = frozenset({"poids", "poids net", "poids_net"})
 _DIMENSION_ATTR_MAP = {
     "longueur": "longueur",
@@ -550,6 +598,124 @@ def search_products_by_weight(
 
     return ProductWeightFilterResponse(
         catalog_leaf_ids=leaf_ids,
+        count=len(products),
+        products=products,
+    )
+
+
+def list_massif_leaf_catalogs(
+    db: Session,
+    root_name: str = MASSIF_ROOT_DEFAULT,
+) -> MassifLeafCatalogsResponse:
+    root = buyer_repo.find_active_root_catalog_by_name(db, root_name)
+    if root is None:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue racine « {root_name} » introuvable.",
+        )
+
+    leaves = buyer_repo.collect_leaf_catalogs(db, root.id)
+    catalogs = [
+        MassifLeafCatalogOut(
+            id=leaf.id,
+            name=leaf.name,
+            description=leaf.description,
+            parent_id=leaf.parent_id,
+            breadcrumb=repo.get_breadcrumb(db, leaf),
+        )
+        for leaf in leaves
+    ]
+    return MassifLeafCatalogsResponse(
+        root_id=root.id,
+        root_name=root.name or root_name,
+        count=len(catalogs),
+        catalogs=catalogs,
+    )
+
+
+def _resolve_massif_weight_range(payload: MassifProductsRequest) -> tuple[float, float]:
+    if payload.poids is not None:
+        return payload.poids, payload.poids
+    if payload.poids_min is None or payload.poids_max is None:
+        raise ClientPortalError(
+            "invalid_range",
+            "Fournissez poids (exact) ou le couple poids_min / poids_max.",
+        )
+    if payload.poids_min > payload.poids_max:
+        raise ClientPortalError(
+            "invalid_range",
+            "poids_min doit être inférieur ou égal à poids_max.",
+        )
+    return payload.poids_min, payload.poids_max
+
+
+def list_massif_products(
+    db: Session,
+    payload: MassifProductsRequest,
+    root_name: str = MASSIF_ROOT_DEFAULT,
+) -> MassifProductsResponse:
+    poids_min, poids_max = _resolve_massif_weight_range(payload)
+
+    root = buyer_repo.find_active_root_catalog_by_name(db, root_name)
+    if root is None:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue racine « {root_name} » introuvable.",
+        )
+
+    leaf_ids = set(buyer_repo.collect_leaf_catalog_ids(db, root.id))
+    if payload.catalog_id not in leaf_ids:
+        raise ClientPortalError(
+            "invalid_catalog",
+            f"Le catalogue choisi n'est pas une feuille sous « {root_name} ».",
+        )
+
+    catalog = repo.get_catalog(db, payload.catalog_id)
+    if catalog is None or not catalog.is_active:
+        raise ClientPortalError("not_found", "Catalogue introuvable.")
+
+    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [payload.catalog_id])
+    products: list[MassifProductOut] = []
+    seen: set[int] = set()
+
+    for product, company, cat in rows:
+        if product.id in seen:
+            continue
+        weight = _product_weight_kg(db, product.id)
+        if weight is None:
+            continue
+        if weight < poids_min or weight > poids_max:
+            continue
+        seen.add(product.id)
+        latest = product_price_repo.get_latest_price(db, product.id)
+        free_attrs = [
+            ProductAttributeOut(id=a.id, name=a.name, value=a.value)
+            for a in repo.list_product_attributes(db, product.id)
+        ]
+        products.append(
+            MassifProductOut(
+                product_id=product.id,
+                product_name=product.product_name,
+                admin_sku=product.admin_sku,
+                poids=weight,
+                dimensions=_product_dimensions(db, product.id),
+                price=float(latest.price) if latest else 0.0,
+                currency=latest.currency if latest else "EUR",
+                company_name=company.company_name if company else None,
+                catalog_id=cat.id,
+                catalog_name=cat.name,
+                mandatory_attributes=_mandatory_out(
+                    product.id, db, catalog_id=payload.catalog_id
+                ),
+                free_attributes=free_attrs,
+            )
+        )
+
+    return MassifProductsResponse(
+        catalog_id=catalog.id,
+        catalog_name=catalog.name,
+        poids_min=poids_min,
+        poids_max=poids_max,
         count=len(products),
         products=products,
     )
