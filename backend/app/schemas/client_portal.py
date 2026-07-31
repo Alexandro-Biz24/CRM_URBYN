@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, Field
 
 from app.schemas.supplier_portal import CatalogOut, MandatoryAttributeValueOut
@@ -69,6 +71,65 @@ class ProductAttributeOut(BaseModel):
     id: int
     name: str
     value: str | None
+
+
+# ── Massif (racine « Massif Type ») ───────────────────────────────────────────
+
+MASSIF_ROOT_DEFAULT = "Massif Type"
+
+
+class MassifLeafCatalogOut(BaseModel):
+    id: int
+    name: str | None
+    description: str | None = None
+    parent_id: int | None = None
+    breadcrumb: list[str] = Field(default_factory=list)
+
+
+class MassifLeafCatalogsResponse(BaseModel):
+    root_id: int
+    root_name: str
+    count: int
+    catalogs: list[MassifLeafCatalogOut] = Field(default_factory=list)
+
+
+class MassifProductsRequest(BaseModel):
+    catalog_id: int = Field(
+        ...,
+        ge=1,
+        description="Catalogue feuille sous « Massif Type »",
+    )
+    poids: float | None = Field(
+        default=None,
+        ge=0,
+        description="Poids exact (kg). Si fourni, remplace poids_min/poids_max.",
+    )
+    poids_min: float | None = Field(default=None, ge=0)
+    poids_max: float | None = Field(default=None, ge=0)
+
+
+class MassifProductOut(BaseModel):
+    product_id: int
+    product_name: str
+    admin_sku: str
+    poids: float
+    dimensions: ProductDimensionsOut
+    price: float
+    currency: str
+    company_name: str | None = None
+    catalog_id: int
+    catalog_name: str | None = None
+    mandatory_attributes: list[MandatoryAttributeValueOut] = Field(default_factory=list)
+    free_attributes: list[ProductAttributeOut] = Field(default_factory=list)
+
+
+class MassifProductsResponse(BaseModel):
+    catalog_id: int
+    catalog_name: str | None = None
+    poids_min: float
+    poids_max: float
+    count: int
+    products: list[MassifProductOut] = Field(default_factory=list)
 
 
 class BuyerShippingOption(BaseModel):
@@ -160,3 +221,15 @@ class CartItemUpdate(BaseModel):
 class CartSessionBody(BaseModel):
     user_id: int
     email: EmailStr
+
+
+class CartSnapshotOut(BaseModel):
+    cart_id: int
+    items: list[dict] = Field(default_factory=list)
+    updated_at: datetime | None = None
+
+
+class CartSnapshotPut(BaseModel):
+    user_id: int
+    email: EmailStr
+    items: list[dict] = Field(default_factory=list)

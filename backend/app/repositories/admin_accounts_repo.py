@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import (
     Address,
+    Cart,
+    CartItem,
     CatalogProduct,
     Company,
     CompanyBankInfo,
@@ -12,6 +14,7 @@ from app.models import (
     CompanyUser,
     EmailVerificationCode,
     Order,
+    Payment,
     Product,
     ProductAttribut,
     ProductMandatoryAttributeValue,
@@ -96,30 +99,43 @@ def get_user_detail(db: Session, user_id: int) -> User | None:
 
 
 def count_user_orders(db: Session, user_id: int) -> int:
-    return int(
+    """Commandes où l'utilisateur est acheteur (orders.buyer)."""
+    as_buyer = int(
         db.scalar(
-            select(func.count())
-            .select_from(Order)
-            .where(or_(Order.seller_id == user_id, Order.buyer_id == user_id))
+            select(func.count()).select_from(Order).where(Order.buyer_id == user_id)
         )
         or 0
     )
-
-
-def delete_user(db: Session, user_id: int) -> None:
-    """Supprime un utilisateur et ses données personnelles.
-
-    Ne supprime JAMAIS la société (table ``companies``), ni ses produits.
-    Seul le lien ``companies_users`` est retiré.
-    """
-    if count_user_orders(db, user_id) > 0:
-        raise ValueError("has_orders")
-
-    linked_company_tvas = list(
-        db.scalars(
-            select(CompanyUser.company_tva_intra_com).where(CompanyUser.user_id == user_id)
-        ).all()
+    as_seller = int(
+        db.scalar(
+            select(func.count())
+            .select_from(ProductOrder)
+            .where(ProductOrder.seller_id == user_id)
+        )
+        or 0
     )
+    return as_buyer + as_seller
+
+
+def _purge_user_dependencies(db: Session, user_id: int) -> None:
+    """Retire les dépendances FK avant suppression du user (sans toucher au schéma).
+
+    Note : les lignes product_order où il est vendeur sont retirées pour permettre
+    la suppression immédiate. L'anonymisation RGPD des historiques viendra plus tard.
+    """
+    cart_ids = list(db.scalars(select(Cart.id).where(Cart.buyer_id == user_id)).all())
+    if cart_ids:
+        db.execute(delete(CartItem).where(CartItem.cart_id.in_(cart_ids)))
+        db.execute(delete(Cart).where(Cart.id.in_(cart_ids)))
+
+    order_ids = list(db.scalars(select(Order.id).where(Order.buyer_id == user_id)).all())
+    if order_ids:
+        db.execute(delete(Payment).where(Payment.order_id.in_(order_ids)))
+        db.execute(delete(ProductOrder).where(ProductOrder.order_id.in_(order_ids)))
+        db.execute(delete(Order).where(Order.id.in_(order_ids)))
+
+    # Lignes de commande où l'utilisateur est vendeur (autres commandes)
+    db.execute(delete(ProductOrder).where(ProductOrder.seller_id == user_id))
 
     review_ids = list(
         db.scalars(select(Review.id).where(Review.user_id == user_id)).all()
@@ -133,6 +149,21 @@ def delete_user(db: Session, user_id: int) -> None:
     db.execute(delete(CompanyUser).where(CompanyUser.user_id == user_id))
     db.execute(delete(EmailVerificationCode).where(EmailVerificationCode.user_id == user_id))
     db.execute(delete(UserProfile).where(UserProfile.user_id == user_id))
+
+
+def delete_user(db: Session, user_id: int) -> None:
+    """Supprime un utilisateur et ses données personnelles.
+
+    Ne supprime JAMAIS la société (table ``companies``), ni ses produits.
+    Seul le lien ``companies_users`` est retiré.
+    """
+    linked_company_tvas = list(
+        db.scalars(
+            select(CompanyUser.company_tva_intra_com).where(CompanyUser.user_id == user_id)
+        ).all()
+    )
+
+    _purge_user_dependencies(db, user_id)
     db.execute(delete(User).where(User.id == user_id))
     db.flush()
 
@@ -333,21 +364,7 @@ def delete_company(db: Session, tva: str) -> None:
     for uid in user_ids:
         if db.get(User, uid) is None:
             continue
-        order_count = count_user_orders(db, uid)
-        if order_count > 0:
-            db.execute(delete(Order).where(or_(Order.seller_id == uid, Order.buyer_id == uid)))
-        u_review_ids = list(
-            db.scalars(select(Review.id).where(Review.user_id == uid)).all()
-        )
-        if u_review_ids:
-            db.execute(
-                delete(ReviewTranslation).where(ReviewTranslation.review_id.in_(u_review_ids))
-            )
-        db.execute(delete(Review).where(Review.user_id == uid))
-        db.execute(delete(CompanyPaymentMethod).where(CompanyPaymentMethod.user_id == uid))
-        db.execute(delete(CompanyUser).where(CompanyUser.user_id == uid))
-        db.execute(delete(EmailVerificationCode).where(EmailVerificationCode.user_id == uid))
-        db.execute(delete(UserProfile).where(UserProfile.user_id == uid))
+        _purge_user_dependencies(db, uid)
         db.execute(delete(User).where(User.id == uid))
 
     db.execute(delete(Company).where(Company.tva_intra_com == tva))

@@ -37,18 +37,40 @@ def has_active_children(db: Session, catalog_id: int) -> bool:
 
 
 def collect_leaf_catalog_ids(db: Session, catalog_id: int) -> list[int]:
+    return [c.id for c in collect_leaf_catalogs(db, catalog_id)]
+
+
+def collect_leaf_catalogs(db: Session, catalog_id: int) -> list[Catalog]:
+    """Retourne les catalogues feuilles (sans enfants actifs) sous un nœud."""
     catalog = catalog_repo.get_catalog(db, catalog_id)
     if catalog is None or not catalog.is_active:
         return []
 
     children = list_active_catalog_children(db, catalog_id)
     if not children:
-        return [catalog_id]
+        return [catalog]
 
-    leaf_ids: list[int] = []
+    leaves: list[Catalog] = []
     for child in children:
-        leaf_ids.extend(collect_leaf_catalog_ids(db, child.id))
-    return leaf_ids
+        leaves.extend(collect_leaf_catalogs(db, child.id))
+    return leaves
+
+
+def find_active_root_catalog_by_name(db: Session, name: str) -> Catalog | None:
+    token = name.strip()
+    if not token:
+        return None
+    stmt = (
+        select(Catalog)
+        .where(
+            Catalog.is_active.is_(True),
+            Catalog.name.ilike(token),
+            (Catalog.parent_id == Catalog.id) | (Catalog.parent_id.is_(None)),
+        )
+        .order_by(Catalog.id)
+        .limit(1)
+    )
+    return db.scalars(stmt).first()
 
 
 def list_marketplace_products_in_catalogs(

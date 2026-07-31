@@ -95,7 +95,11 @@ def get_catalog_detail(db: Session, catalog_id: int) -> AdminCatalogDetail:
         product_count=repo.count_products(db, c.id),
         breadcrumb=repo.get_breadcrumb(db, c),
         attribute_definitions=[
-            AdminAttributeDefinitionOut(id=a.id, attribute_name=a.attribute_name)
+            AdminAttributeDefinitionOut(
+                id=a.id,
+                attribute_name=a.attribute_name,
+                default_value=getattr(a, "default_value", None) or "",
+            )
             for a in attrs
         ],
     )
@@ -154,13 +158,22 @@ def get_product_detail(db: Session, product_id: int) -> AdminProductDetail:
         raise AdminError("not_found", "Produit introuvable.")
     company = product.company
     latest = product_price_repo.get_latest_price(db, product.id)
-    mandatory = [
-        AdminProductAttributeOut(
-            name=f"{defn.attribute_name} ({defn.catalog_id})",
-            value=val.value,
+    mandatory = []
+    for val, defn in portal_repo.list_mandatory_attribute_values(db, product.id):
+        catalog = repo.get_catalog(db, defn.catalog_id)
+        catalog_name = catalog.name if catalog else None
+        label = defn.attribute_name
+        if catalog_name:
+            label = f"{defn.attribute_name} · {catalog_name}"
+        mandatory.append(
+            AdminProductAttributeOut(
+                name=label,
+                value=val.value,
+                catalog_id=defn.catalog_id,
+                catalog_name=catalog_name,
+                definition_id=defn.id,
+            )
         )
-        for val, defn in portal_repo.list_mandatory_attribute_values(db, product.id)
-    ]
     free_attrs = [
         AdminProductAttributeOut(name=a.name, value=a.value)
         for a in sorted(product.attributes, key=lambda x: x.name.lower())

@@ -6,6 +6,10 @@ from app.schemas.auth import (
     AccountType,
     EmailCheckResponse,
     LoginRequest,
+    PasswordResetConfirmRequest,
+    PasswordResetConfirmResponse,
+    PasswordResetStartRequest,
+    PasswordResetStartResponse,
     SessionUser,
     SignupResendRequest,
     SignupResendResponse,
@@ -26,13 +30,19 @@ from app.services.entreprise_search import search_french_companies
 from app.services.onboarding import OnboardingError, complete_user_profile
 from app.services.onboarding_prefill import get_sibling_onboarding_prefill
 from app.services.onboarding_company import OnboardingCompanyError, complete_user_company, list_company_options
+from app.services.password_reset import (
+    PasswordResetError,
+    confirm_password_reset,
+    resend_password_reset_code,
+    start_password_reset,
+)
 from app.services.signup import SignupError, check_email_availability, resend_verification_code, start_signup, verify_signup_code
 
 router = APIRouter()
 
 
 def _http_error(
-    exc: AuthError | SignupError | OnboardingError | OnboardingCompanyError,
+    exc: AuthError | SignupError | OnboardingError | OnboardingCompanyError | PasswordResetError,
 ) -> HTTPException:
     code = exc.code
     status_code = status.HTTP_400_BAD_REQUEST
@@ -40,14 +50,14 @@ def _http_error(
         status_code = status.HTTP_401_UNAUTHORIZED
     elif code in ("role_mismatch",):
         status_code = status.HTTP_403_FORBIDDEN
-    elif code in ("email_taken",):
+    elif code in ("email_taken", "company_exists"):
         status_code = status.HTTP_409_CONFLICT
     elif code in ("email_delivery_failed",):
         status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     elif code in ("email_not_verified",):
         status_code = status.HTTP_403_FORBIDDEN
-    elif code in ("company_exists", "email_taken"):
-        status_code = status.HTTP_409_CONFLICT
+    elif code in ("identity_mismatch", "not_found"):
+        status_code = status.HTTP_404_NOT_FOUND
     return HTTPException(
         status_code=status_code,
         detail={"code": code, "message": exc.message},
@@ -210,4 +220,70 @@ def auth_login(payload: LoginRequest, db: Session = Depends(get_db)) -> SessionU
     try:
         return login(db=db, payload=payload)
     except AuthError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post(
+    "/password-reset/start",
+    response_model=PasswordResetStartResponse,
+    summary="Demander un code de réinitialisation (email + prénom + nom)",
+)
+def auth_password_reset_start(
+    payload: PasswordResetStartRequest,
+    db: Session = Depends(get_db),
+) -> PasswordResetStartResponse:
+    try:
+        result = start_password_reset(
+            db,
+            email=str(payload.email),
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            account_type=payload.account_type,
+        )
+        return PasswordResetStartResponse(**result)
+    except PasswordResetError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post(
+    "/password-reset/resend-code",
+    response_model=PasswordResetStartResponse,
+    summary="Renvoyer le code de réinitialisation",
+)
+def auth_password_reset_resend(
+    payload: PasswordResetStartRequest,
+    db: Session = Depends(get_db),
+) -> PasswordResetStartResponse:
+    try:
+        result = resend_password_reset_code(
+            db,
+            email=str(payload.email),
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            account_type=payload.account_type,
+        )
+        return PasswordResetStartResponse(**result)
+    except PasswordResetError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post(
+    "/password-reset/confirm",
+    response_model=PasswordResetConfirmResponse,
+    summary="Valider le code et enregistrer le nouveau mot de passe",
+)
+def auth_password_reset_confirm(
+    payload: PasswordResetConfirmRequest,
+    db: Session = Depends(get_db),
+) -> PasswordResetConfirmResponse:
+    try:
+        result = confirm_password_reset(
+            db,
+            email=str(payload.email),
+            code=payload.code,
+            account_type=payload.account_type,
+            new_password=payload.new_password,
+        )
+        return PasswordResetConfirmResponse(**result)
+    except PasswordResetError as exc:
         raise _http_error(exc) from exc
