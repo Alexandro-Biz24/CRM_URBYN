@@ -56,21 +56,28 @@ def collect_leaf_catalogs(db: Session, catalog_id: int) -> list[Catalog]:
     return leaves
 
 
+def _normalize_catalog_name(name: str) -> str:
+    """Compare les noms catalogue en ignorant casse, _ / - et espaces multiples."""
+    cleaned = (name or "").strip().replace("_", " ").replace("-", " ")
+    return " ".join(cleaned.split()).casefold()
+
+
 def find_active_root_catalog_by_name(db: Session, name: str) -> Catalog | None:
-    token = name.strip()
-    if not token:
+    needle = _normalize_catalog_name(name)
+    if not needle:
         return None
     stmt = (
         select(Catalog)
         .where(
             Catalog.is_active.is_(True),
-            Catalog.name.ilike(token),
             (Catalog.parent_id == Catalog.id) | (Catalog.parent_id.is_(None)),
         )
         .order_by(Catalog.id)
-        .limit(1)
     )
-    return db.scalars(stmt).first()
+    for catalog in db.scalars(stmt):
+        if _normalize_catalog_name(catalog.name or "") == needle:
+            return catalog
+    return None
 
 
 def list_marketplace_products_in_catalogs(
