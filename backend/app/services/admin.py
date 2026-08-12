@@ -19,6 +19,8 @@ from app.schemas.admin import (
     AdminLoginResponse,
     AdminProductAttributeOut,
     AdminProductDetail,
+    CatalogAttributeMandatoryUpdate,
+    CatalogProductAttributeOut,
 )
 
 
@@ -215,3 +217,76 @@ def delete_catalog(db: Session, catalog_id: int) -> None:
                 "Ce catalogue est lié à des commandes et ne peut pas être supprimé.",
             ) from exc
         raise
+
+
+def list_catalog_product_attributes(
+    db: Session, catalog_id: int
+) -> list[CatalogProductAttributeOut]:
+    c = repo.get_catalog(db, catalog_id)
+    if c is None:
+        raise AdminError("not_found", "Catalogue introuvable.")
+    stats = repo.list_product_attribute_stats(db, catalog_id)
+    definitions = {
+        d.attribute_name.lower(): d for d in repo.list_attribute_definitions(db, catalog_id)
+    }
+    result: list[CatalogProductAttributeOut] = []
+    seen: set[str] = set()
+    for name, count in stats:
+        key = name.lower()
+        seen.add(key)
+        defn = definitions.get(key)
+        result.append(
+            CatalogProductAttributeOut(
+                attribute_name=name,
+                product_count=count,
+                is_mandatory=defn is not None,
+                definition_id=defn.id if defn else None,
+            )
+        )
+    # Définitions orphelines (plus aucune valeur libre) — toujours listées
+    for key, defn in definitions.items():
+        if key in seen:
+            continue
+        result.append(
+            CatalogProductAttributeOut(
+                attribute_name=defn.attribute_name,
+                product_count=0,
+                is_mandatory=True,
+                definition_id=defn.id,
+            )
+        )
+    result.sort(key=lambda a: a.attribute_name.lower())
+    return result
+
+
+def set_catalog_attribute_mandatory(
+    db: Session,
+    catalog_id: int,
+    attribute_name: str,
+    data: CatalogAttributeMandatoryUpdate,
+) -> CatalogProductAttributeOut:
+    c = repo.get_catalog(db, catalog_id)
+    if c is None:
+        raise AdminError("not_found", "Catalogue introuvable.")
+    try:
+        defn = repo.set_attribute_mandatory(
+            db,
+            catalog_id,
+            attribute_name,
+            is_mandatory=data.is_mandatory,
+        )
+        db.commit()
+    except ValueError as exc:
+        db.rollback()
+        if str(exc) == "empty_attribute_name":
+            raise AdminError("invalid_attribute", "Nom d'attribut invalide.") from exc
+        raise
+
+    stats = {n.lower(): c for n, c in repo.list_product_attribute_stats(db, catalog_id)}
+    name = attribute_name.strip()
+    return CatalogProductAttributeOut(
+        attribute_name=defn.attribute_name if defn else name,
+        product_count=stats.get(name.lower(), 0),
+        is_mandatory=defn is not None,
+        definition_id=defn.id if defn else None,
+    )

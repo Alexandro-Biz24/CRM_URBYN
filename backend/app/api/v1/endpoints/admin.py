@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.admin_deps import require_admin
@@ -12,8 +12,13 @@ from app.schemas.admin import (
     AdminLoginRequest,
     AdminLoginResponse,
     AdminProductDetail,
+    CatalogAttributeMandatoryUpdate,
+    CatalogCsvImportMode,
+    CatalogCsvImportResult,
+    CatalogProductAttributeOut,
 )
 from app.services import admin as admin_svc
+from app.services import catalog_csv_import as csv_import_svc
 from app.services.admin import AdminError
 
 router = APIRouter()
@@ -45,6 +50,8 @@ def _http_error(exc: AdminError) -> HTTPException:
         status_code = status.HTTP_409_CONFLICT
     elif exc.code == "admin_not_configured":
         status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    elif exc.code == "company_not_found":
+        status_code = status.HTTP_404_NOT_FOUND
     return HTTPException(
         status_code=status_code,
         detail={"code": exc.code, "message": exc.message},
@@ -65,6 +72,38 @@ def admin_catalog_tree(
     _: None = Depends(require_admin),
 ) -> AdminCatalogTreeResponse:
     return admin_svc.get_catalog_tree(db)
+
+
+@router.post(
+    "/catalogs/import-csv",
+    response_model=CatalogCsvImportResult,
+)
+async def admin_import_catalog_csv(
+    file: UploadFile = File(...),
+    mode: CatalogCsvImportMode = Form(CatalogCsvImportMode.additive),
+    company_tva_intra_com: str = Form(""),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> CatalogCsvImportResult:
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "empty_file", "message": "Fichier vide."},
+        )
+    try:
+        return csv_import_svc.import_catalog_csv(
+            db,
+            content=raw,
+            mode=mode,
+            company_tva_intra_com=company_tva_intra_com or None,
+        )
+    except AdminError as exc:
+        db.rollback()
+        raise _http_error(exc) from exc
+    except Exception:
+        db.rollback()
+        raise
 
 
 @router.get("/catalogs/{catalog_id}", response_model=AdminCatalogDetail)
@@ -102,6 +141,40 @@ def admin_list_catalog_products(
 ) -> list[AdminCatalogProductEntry]:
     try:
         return admin_svc.list_catalog_products(db, catalog_id)
+    except AdminError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get(
+    "/catalogs/{catalog_id}/product-attributes",
+    response_model=list[CatalogProductAttributeOut],
+)
+def admin_list_catalog_product_attributes(
+    catalog_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> list[CatalogProductAttributeOut]:
+    try:
+        return admin_svc.list_catalog_product_attributes(db, catalog_id)
+    except AdminError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.put(
+    "/catalogs/{catalog_id}/product-attributes/{attribute_name}/mandatory",
+    response_model=CatalogProductAttributeOut,
+)
+def admin_set_catalog_attribute_mandatory(
+    catalog_id: int,
+    attribute_name: str,
+    body: CatalogAttributeMandatoryUpdate,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> CatalogProductAttributeOut:
+    try:
+        return admin_svc.set_catalog_attribute_mandatory(
+            db, catalog_id, attribute_name, body
+        )
     except AdminError as exc:
         raise _http_error(exc) from exc
 

@@ -19,6 +19,7 @@ backend/.coverage
 backend/dist/
 backend/build/
 backend/*.egg-info/
+backend/OLD_DATA/
 
 # ── OS / IDE ─────────────────────────────────────────────────────────────────
 .DS_Store
