@@ -1,9 +1,45 @@
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
 class AdminLoginRequest(BaseModel):
     login: str = Field(..., min_length=1)
     password: str = Field(..., min_length=1)
+
+
+class CatalogCsvImportMode(str, Enum):
+    additive = "additive"
+    destructive = "destructive"
+
+
+class CatalogCsvImportRowError(BaseModel):
+    line: int
+    message: str
+
+
+class CatalogCsvImportResult(BaseModel):
+    mode: CatalogCsvImportMode
+    products_created: int = 0
+    products_updated: int = 0
+    catalogs_created: int = 0
+    catalogs_cleared: int = 0
+    links_created: int = 0
+    rows_processed: int = 0
+    errors: list[CatalogCsvImportRowError] = Field(default_factory=list)
+
+
+class CatalogProductAttributeOut(BaseModel):
+    """Attribut présent sur les produits d'un catalogue (+ flag obligatoire)."""
+
+    attribute_name: str
+    product_count: int = 0
+    is_mandatory: bool = False
+    definition_id: int | None = None
+
+
+class CatalogAttributeMandatoryUpdate(BaseModel):
+    is_mandatory: bool
 
 
 class AdminLoginResponse(BaseModel):
@@ -14,6 +50,18 @@ class AdminLoginResponse(BaseModel):
 class AdminAttributeDefinitionOut(BaseModel):
     id: int
     attribute_name: str
+    default_value: str = ""
+
+
+class AdminCatalogAttributeIn(BaseModel):
+    """Attribut obligatoire à synchroniser sur un catalogue (nom + valeur par défaut)."""
+
+    attribute_name: str = Field(..., min_length=1, max_length=120)
+    default_value: str = Field(
+        ...,
+        min_length=1,
+        description="Valeur appliquée automatiquement à tous les produits déjà présents.",
+    )
 
 
 class AdminCatalogNode(BaseModel):
@@ -52,6 +100,8 @@ class AdminCatalogWrite(BaseModel):
         None,
         description="Omettre ou null pour une racine ; sinon ID du parent.",
     )
+    attributes: list[AdminCatalogAttributeIn] = Field(default_factory=list)
+    # Legacy — converti en attributes côté service si `attributes` est vide
     attribute_names: list[str] = Field(default_factory=list)
 
 
@@ -59,7 +109,9 @@ class AdminCatalogUpdate(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = Field(..., min_length=1)
     is_active: bool = True
-    attribute_names: list[str] = Field(default_factory=list)
+    # None = ne pas toucher au schéma d'attributs (géré via switch dédié)
+    attributes: list[AdminCatalogAttributeIn] | None = None
+    attribute_names: list[str] | None = None
 
 
 class AdminCatalogProductEntry(BaseModel):
@@ -75,6 +127,9 @@ class AdminCatalogProductEntry(BaseModel):
 class AdminProductAttributeOut(BaseModel):
     name: str
     value: str | None
+    catalog_id: int | None = None
+    catalog_name: str | None = None
+    definition_id: int | None = None
 
 
 class AdminProductDetail(BaseModel):

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 
 class CatalogAttributeDefinition(Base):
-    """Attribut obligatoire défini par l'admin pour un catalogue (schéma, sans valeur produit)."""
+    """Attribut obligatoire défini par l'admin pour un catalogue (schéma + défaut)."""
 
     __tablename__ = "catalog_attribute_definitions"
     __table_args__ = (
@@ -26,6 +26,7 @@ class CatalogAttributeDefinition(Base):
         nullable=False,
     )
     attribute_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    default_value: Mapped[str] = mapped_column(Text, nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )

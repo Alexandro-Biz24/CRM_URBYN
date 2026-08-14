@@ -84,7 +84,8 @@ def checkout_client_v2(
         cart_subtotal += unit_price * qty
 
     tax_total = _money(payload.tax_amount)
-    ship_total = _money(payload.shipping_amount)
+    # v1 : frais de livraison exclus du checkout (module buyer_shipping conservé)
+    ship_total = Decimal("0.00")
     currency = payload.currency.upper()
 
     order_parts: list[ClientCheckoutOrderPartV2] = []

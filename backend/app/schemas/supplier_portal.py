@@ -25,6 +25,7 @@ class CatalogAttributeDefinitionOut(BaseModel):
     id: int
     catalog_id: int
     attribute_name: str
+    default_value: str = ""
 
 
 class CatalogWrite(BaseModel):

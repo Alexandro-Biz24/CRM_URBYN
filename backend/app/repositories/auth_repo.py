@@ -142,3 +142,11 @@ def mark_code_used(db: Session, code_id: int) -> None:
         .where(EmailVerificationCode.id == code_id)
         .values(used_at=datetime.utcnow())
     )
+
+
+def update_user_password(db: Session, user_id: int, raw_password: str) -> None:
+    db.execute(
+        update(User)
+        .where(User.id == user_id)
+        .values(password_hash=hash_password(raw_password), updated_at=datetime.utcnow())
+    )

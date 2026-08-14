@@ -37,18 +37,47 @@ def has_active_children(db: Session, catalog_id: int) -> bool:
 
 
 def collect_leaf_catalog_ids(db: Session, catalog_id: int) -> list[int]:
+    return [c.id for c in collect_leaf_catalogs(db, catalog_id)]
+
+
+def collect_leaf_catalogs(db: Session, catalog_id: int) -> list[Catalog]:
+    """Retourne les catalogues feuilles (sans enfants actifs) sous un nœud."""
     catalog = catalog_repo.get_catalog(db, catalog_id)
     if catalog is None or not catalog.is_active:
         return []
 
     children = list_active_catalog_children(db, catalog_id)
     if not children:
-        return [catalog_id]
+        return [catalog]
 
-    leaf_ids: list[int] = []
+    leaves: list[Catalog] = []
     for child in children:
-        leaf_ids.extend(collect_leaf_catalog_ids(db, child.id))
-    return leaf_ids
+        leaves.extend(collect_leaf_catalogs(db, child.id))
+    return leaves
+
+
+def _normalize_catalog_name(name: str) -> str:
+    """Compare les noms catalogue en ignorant casse, _ / - et espaces multiples."""
+    cleaned = (name or "").strip().replace("_", " ").replace("-", " ")
+    return " ".join(cleaned.split()).casefold()
+
+
+def find_active_root_catalog_by_name(db: Session, name: str) -> Catalog | None:
+    needle = _normalize_catalog_name(name)
+    if not needle:
+        return None
+    stmt = (
+        select(Catalog)
+        .where(
+            Catalog.is_active.is_(True),
+            (Catalog.parent_id == Catalog.id) | (Catalog.parent_id.is_(None)),
+        )
+        .order_by(Catalog.id)
+    )
+    for catalog in db.scalars(stmt):
+        if _normalize_catalog_name(catalog.name or "") == needle:
+            return catalog
+    return None
 
 
 def list_marketplace_products_in_catalogs(

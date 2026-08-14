@@ -89,6 +89,26 @@ def delete_item(db: Session, item: CartItem) -> None:
     db.flush()
 
 
+def save_cart_front_payload(
+    db: Session,
+    cart: Cart,
+    items: list[dict],
+) -> Cart:
+    cart.front_payload = {"items": items}
+    cart.updated_at = datetime.utcnow()
+    db.flush()
+    return cart
+
+
+def get_cart_front_items(cart: Cart) -> list[dict]:
+    payload = cart.front_payload
+    if isinstance(payload, dict) and isinstance(payload.get("items"), list):
+        return [x for x in payload["items"] if isinstance(x, dict)]
+    if isinstance(payload, list):
+        return [x for x in payload if isinstance(x, dict)]
+    return []
+
+
 def load_cart_with_items(db: Session, cart_id: int) -> Cart | None:
     stmt = (
         select(Cart)
