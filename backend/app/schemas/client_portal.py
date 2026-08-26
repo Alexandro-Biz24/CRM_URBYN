@@ -93,6 +93,19 @@ class MassifLeafCatalogsResponse(BaseModel):
     catalogs: list[MassifLeafCatalogOut] = Field(default_factory=list)
 
 
+class MassifWeightBandOut(BaseModel):
+    poids_min: float
+    poids_max: float
+    product_count: int = 0
+    available: bool = False
+
+
+class MassifWeightBandsResponse(BaseModel):
+    root_id: int
+    root_name: str
+    bands: list[MassifWeightBandOut] = Field(default_factory=list)
+
+
 class MassifProductsRequest(BaseModel):
     catalog_id: int = Field(
         ...,

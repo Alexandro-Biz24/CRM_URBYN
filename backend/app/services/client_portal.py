@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -24,6 +26,8 @@ from app.schemas.client_portal import (
     MassifProductOut,
     MassifProductsRequest,
     MassifProductsResponse,
+    MassifWeightBandOut,
+    MassifWeightBandsResponse,
     ProductAttributeOut,
     ProductWeightFilterItem,
     ProductWeightFilterRequest,
@@ -473,7 +477,11 @@ _DIMENSION_ATTR_MAP = {
 
 
 def _normalize_attr_name(name: str | None) -> str:
-    return (name or "").strip().lower().replace("_", " ")
+    """Normalise un libellé d'attribut CSV/DB (casse, _, unités entre parenthèses)."""
+    cleaned = (name or "").strip().lower().replace("_", " ")
+    # « Largeur (cm) », « Poids (kg) », « Volume (m3) » → racine sans unité
+    cleaned = re.sub(r"\s*\([^)]*\)\s*", " ", cleaned)
+    return " ".join(cleaned.split())
 
 
 def _is_poids_attribute(name: str | None) -> bool:
@@ -483,7 +491,11 @@ def _is_poids_attribute(name: str | None) -> bool:
 
 def _dimension_field(name: str | None) -> str | None:
     normalized = _normalize_attr_name(name)
-    return _DIMENSION_ATTR_MAP.get(normalized)
+    # « longueur cm » après strip raté → prend le premier token connu
+    if normalized in _DIMENSION_ATTR_MAP:
+        return _DIMENSION_ATTR_MAP[normalized]
+    first = normalized.split(" ", 1)[0] if normalized else ""
+    return _DIMENSION_ATTR_MAP.get(first)
 
 
 def _parse_numeric_value(raw: str | None) -> float | None:
@@ -603,33 +615,135 @@ def search_products_by_weight(
     )
 
 
+def _resolve_massif_root(db: Session, root_name: str):
+    root = buyer_repo.find_active_root_catalog_by_name(db, root_name)
+    if root is not None:
+        return root
+    aliases = (
+        "Massif_Type",
+        "Massif Type",
+        root_name.replace(" ", "_"),
+        root_name.replace("_", " "),
+    )
+    for alias in aliases:
+        if alias == root_name:
+            continue
+        root = buyer_repo.find_active_root_catalog_by_name(db, alias)
+        if root is not None:
+            return root
+    return None
+
+
 def list_massif_leaf_catalogs(
     db: Session,
     root_name: str = MASSIF_ROOT_DEFAULT,
+    *,
+    poids_min: float | None = None,
+    poids_max: float | None = None,
 ) -> MassifLeafCatalogsResponse:
-    root = buyer_repo.find_active_root_catalog_by_name(db, root_name)
+    root = _resolve_massif_root(db, root_name)
     if root is None:
         raise ClientPortalError(
             "not_found",
             f"Catalogue racine « {root_name} » introuvable.",
         )
 
-    leaves = buyer_repo.collect_leaf_catalogs(db, root.id)
-    catalogs = [
-        MassifLeafCatalogOut(
-            id=leaf.id,
-            name=leaf.name,
-            description=leaf.description,
-            parent_id=leaf.parent_id,
-            breadcrumb=repo.get_breadcrumb(db, leaf),
+    if poids_min is not None and poids_max is not None and poids_min > poids_max:
+        raise ClientPortalError(
+            "invalid_range",
+            "poids_min doit être inférieur ou égal à poids_max.",
         )
-        for leaf in leaves
-    ]
+
+    leaves = buyer_repo.collect_leaf_catalogs(db, root.id)
+    catalogs: list[MassifLeafCatalogOut] = []
+    for leaf in leaves:
+        if poids_min is not None and poids_max is not None:
+            if not _leaf_has_products_in_weight_range(db, leaf.id, poids_min, poids_max):
+                continue
+        catalogs.append(
+            MassifLeafCatalogOut(
+                id=leaf.id,
+                name=leaf.name,
+                description=leaf.description,
+                parent_id=leaf.parent_id,
+                breadcrumb=repo.get_breadcrumb(db, leaf),
+            )
+        )
     return MassifLeafCatalogsResponse(
         root_id=root.id,
         root_name=root.name or root_name,
         count=len(catalogs),
         catalogs=catalogs,
+    )
+
+
+def _leaf_has_products_in_weight_range(
+    db: Session,
+    catalog_id: int,
+    poids_min: float,
+    poids_max: float,
+) -> bool:
+    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [catalog_id])
+    seen: set[int] = set()
+    for product, _company, _cat in rows:
+        if product.id in seen:
+            continue
+        seen.add(product.id)
+        weight = _product_weight_kg(db, product.id)
+        if weight is None:
+            continue
+        if poids_min <= weight <= poids_max:
+            return True
+    return False
+
+
+def list_massif_available_weight_bands(
+    db: Session,
+    root_name: str = MASSIF_ROOT_DEFAULT,
+    bands: list[tuple[float, float]] | None = None,
+) -> MassifWeightBandsResponse:
+    """Indique quelles fourchettes de poids ont au moins un produit sous Massif Type."""
+    root = _resolve_massif_root(db, root_name)
+    if root is None:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue racine « {root_name} » introuvable.",
+        )
+
+    default_bands = bands or [
+        (0.0, 299.0),
+        (300.0, 750.0),
+        (751.0, 1500.0),
+        (1501.0, 2500.0),
+        (2501.0, 99999.0),
+    ]
+    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, root.id)
+    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, leaf_ids)
+    weights: list[float] = []
+    seen: set[int] = set()
+    for product, _company, _cat in rows:
+        if product.id in seen:
+            continue
+        seen.add(product.id)
+        w = _product_weight_kg(db, product.id)
+        if w is not None:
+            weights.append(w)
+
+    out: list[MassifWeightBandOut] = []
+    for mn, mx in default_bands:
+        count = sum(1 for w in weights if mn <= w <= mx)
+        out.append(
+            MassifWeightBandOut(
+                poids_min=mn,
+                poids_max=mx,
+                product_count=count,
+                available=count > 0,
+            )
+        )
+    return MassifWeightBandsResponse(
+        root_id=root.id,
+        root_name=root.name or root_name,
+        bands=out,
     )
 
 
@@ -656,7 +770,7 @@ def list_massif_products(
 ) -> MassifProductsResponse:
     poids_min, poids_max = _resolve_massif_weight_range(payload)
 
-    root = buyer_repo.find_active_root_catalog_by_name(db, root_name)
+    root = _resolve_massif_root(db, root_name)
     if root is None:
         raise ClientPortalError(
             "not_found",
