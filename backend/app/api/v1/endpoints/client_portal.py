@@ -16,6 +16,7 @@ from app.schemas.client_portal import (
     MassifLeafCatalogsResponse,
     MassifProductsRequest,
     MassifProductsResponse,
+    MassifWeightBandsResponse,
     ProductWeightFilterRequest,
     ProductWeightFilterResponse,
     ShippingCheckRequest,
@@ -34,6 +35,7 @@ from app.services.client_portal import (
     get_product_card,
     get_product_detail,
     list_catalog_products,
+    list_massif_available_weight_bands,
     list_massif_leaf_catalogs,
     list_massif_products,
     list_root_catalogs,
@@ -138,11 +140,30 @@ def portal_search_products_by_weight(
 @router.get("/massif/leaf-catalogs", response_model=MassifLeafCatalogsResponse)
 def portal_massif_leaf_catalogs(
     root_name: str = Query("Massif Type", min_length=1),
+    poids_min: float | None = Query(None, ge=0),
+    poids_max: float | None = Query(None, ge=0),
     db: Session = Depends(get_db),
 ) -> MassifLeafCatalogsResponse:
-    """Catalogues feuilles (sans enfants) sous la racine Massif Type."""
+    """Catalogues feuilles sous Massif Type, optionnellement filtrés par fourchette de poids."""
     try:
-        return list_massif_leaf_catalogs(db, root_name=root_name)
+        return list_massif_leaf_catalogs(
+            db,
+            root_name=root_name,
+            poids_min=poids_min,
+            poids_max=poids_max,
+        )
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/massif/weight-bands", response_model=MassifWeightBandsResponse)
+def portal_massif_weight_bands(
+    root_name: str = Query("Massif Type", min_length=1),
+    db: Session = Depends(get_db),
+) -> MassifWeightBandsResponse:
+    """Fourchettes de poids disponibles (au moins 1 produit) sous Massif Type."""
+    try:
+        return list_massif_available_weight_bands(db, root_name=root_name)
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
 
