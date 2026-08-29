@@ -22,6 +22,9 @@ from app.schemas.client_portal import (
     ShippingCheckRequest,
     ShippingCheckResponse,
     ShippingQuoteRequest,
+    TotemFamiliesResponse,
+    TotemProductDetailOut,
+    TotemProductsResponse,
 )
 from app.schemas.supplier_portal import CatalogOut, PortalContext, PortalSession
 from app.services.client_portal import (
@@ -34,11 +37,14 @@ from app.services.client_portal import (
     get_context,
     get_product_card,
     get_product_detail,
+    get_totem_product_detail,
     list_catalog_products,
     list_massif_available_weight_bands,
     list_massif_leaf_catalogs,
     list_massif_products,
     list_root_catalogs,
+    list_totem_families,
+    list_totem_family_products,
     put_cart_snapshot,
     remove_cart_item,
     request_shipping_quote,
@@ -177,6 +183,49 @@ def portal_massif_products(
     """Produits d'un catalogue feuille Massif, filtrés par poids exact ou fourchette + attributs."""
     try:
         return list_massif_products(db, payload, root_name=root_name)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/totem/families", response_model=TotemFamiliesResponse)
+def portal_totem_families(
+    offer: str = Query("Acquisition", min_length=1),
+    root_name: str = Query("Totem", min_length=1),
+    db: Session = Depends(get_db),
+) -> TotemFamiliesResponse:
+    """Familles totem sous Acquisition ou Location (prix min + description)."""
+    try:
+        return list_totem_families(db, offer=offer, root_name=root_name)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get(
+    "/totem/families/{family_catalog_id}/products",
+    response_model=TotemProductsResponse,
+)
+def portal_totem_family_products(
+    family_catalog_id: int,
+    offer: str = Query("Acquisition", min_length=1),
+    db: Session = Depends(get_db),
+) -> TotemProductsResponse:
+    """Produits d'une famille totem pour une offre (Acquisition / Location)."""
+    try:
+        return list_totem_family_products(
+            db, family_catalog_id=family_catalog_id, offer=offer
+        )
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/totem/products/{product_id}", response_model=TotemProductDetailOut)
+def portal_totem_product_detail(
+    product_id: int,
+    db: Session = Depends(get_db),
+) -> TotemProductDetailOut:
+    """Fiche détail totem (attributs, bullets Détail, clé fiche technique)."""
+    try:
+        return get_totem_product_detail(db, product_id)
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
 

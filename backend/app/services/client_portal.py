@@ -12,6 +12,7 @@ from app.repositories import product_price_repo, supplier_portal_repo as repo
 from app.services import buyer_shipping
 from app.schemas.client_portal import (
     MASSIF_ROOT_DEFAULT,
+    TOTEM_ROOT_DEFAULT,
     BuyerCatalogNavItem,
     BuyerCatalogNavigation,
     BuyerProductCard,
@@ -36,6 +37,11 @@ from app.schemas.client_portal import (
     ShippingCheckRequest,
     ShippingCheckResponse,
     ShippingQuoteRequest,
+    TotemFamiliesResponse,
+    TotemFamilyOut,
+    TotemProductDetailOut,
+    TotemProductOut,
+    TotemProductsResponse,
 )
 from app.schemas.supplier_portal import CatalogOut, MandatoryAttributeValueOut, PortalContext, PortalSession
 
@@ -472,6 +478,7 @@ _DIMENSION_ATTR_MAP = {
     "longueur": "longueur",
     "largeur": "largeur",
     "hauteur": "hauteur",
+    "profondeur": "profondeur",
     "volume": "volume",
 }
 
@@ -534,6 +541,7 @@ def _product_dimensions(db: Session, product_id: int) -> ProductDimensionsOut:
         "longueur": None,
         "largeur": None,
         "hauteur": None,
+        "profondeur": None,
         "volume": None,
     }
 
@@ -832,4 +840,354 @@ def list_massif_products(
         poids_max=poids_max,
         count=len(products),
         products=products,
+    )
+
+
+# ── Totem ─────────────────────────────────────────────────────────────────────
+
+def _norm_offer(offer: str) -> str:
+    return " ".join((offer or "").strip().replace("_", " ").split()).casefold()
+
+
+def _find_child_by_offer(db: Session, parent_id: int, offer: str):
+    needle = _norm_offer(offer)
+    for child in buyer_repo.list_active_catalog_children(db, parent_id):
+        if _norm_offer(child.name or "") == needle:
+            return child
+    return None
+
+
+def _product_attr_map(db: Session, product_id: int) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for attr in repo.list_product_attributes(db, product_id):
+        name = (attr.name or "").strip()
+        value = (attr.value or "").strip()
+        if name and value:
+            out[name] = value
+    return out
+
+
+def _product_description(db: Session, product: Product) -> str | None:
+    translations = getattr(product, "translations", None)
+    if translations:
+        for tr in translations:
+            text = (getattr(tr, "description", None) or "").strip()
+            if text:
+                return text
+    else:
+        from app.models import ProductTranslation
+
+        row = db.scalar(
+            select(ProductTranslation.description).where(
+                ProductTranslation.product_id == product.id
+            ).limit(1)
+        )
+        if row and str(row).strip():
+            return str(row).strip()
+    attrs = _product_attr_map(db, product.id)
+    for key in ("Description", "description"):
+        if attrs.get(key):
+            return attrs[key]
+    return None
+
+
+def _short_text(text: str | None, max_len: int = 160) -> str | None:
+    if not text:
+        return None
+    cleaned = " ".join(text.split())
+    if len(cleaned) <= max_len:
+        return cleaned
+    return cleaned[: max_len - 1].rstrip() + "…"
+
+
+def _format_dim_number(value: float | None) -> str | None:
+    if value is None:
+        return None
+    if abs(value - round(value)) < 1e-9:
+        return str(int(round(value)))
+    text = f"{value:.1f}".replace(".", ",")
+    return text.rstrip("0").rstrip(",") if "," in text else text
+
+
+def _dimensions_label(dims: ProductDimensionsOut) -> str | None:
+    longueur = dims.longueur
+    hauteur = dims.hauteur
+    profondeur = dims.profondeur if dims.profondeur is not None else dims.largeur
+    parts: list[str] = []
+    if longueur is not None:
+        parts.append(f"L {_format_dim_number(longueur)} cm")
+    if hauteur is not None:
+        parts.append(f"H {_format_dim_number(hauteur)} cm")
+    if profondeur is not None:
+        parts.append(f"P {_format_dim_number(profondeur)} cm")
+    return " x ".join(parts) if parts else None
+
+
+def _parse_detail_bullets(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    bullets: list[str] = []
+    for line in raw.replace("\r\n", "\n").split("\n"):
+        text = line.strip()
+        if not text:
+            continue
+        if text.startswith(("-", "•", "*")):
+            text = text[1:].strip()
+        if text:
+            bullets.append(text)
+    return bullets
+
+
+def _attr_ci(attrs: dict[str, str], *names: str) -> str | None:
+    normalized = {_normalize_attr_name(k): v for k, v in attrs.items()}
+    for name in names:
+        key = _normalize_attr_name(name)
+        if key in normalized:
+            return normalized[key]
+    return None
+
+
+def _catalog_product_rows(db: Session, catalog_id: int):
+    return buyer_repo.get_product_catalog_links_in_catalogs(db, [catalog_id])
+
+
+def _cheapest_product_meta(db: Session, catalog_id: int) -> tuple[float, str, str | None, int]:
+    """Retourne (min_price, currency, description, product_count)."""
+    rows = _catalog_product_rows(db, catalog_id)
+    min_price: float | None = None
+    currency = "EUR"
+    description: str | None = None
+    count = 0
+    seen: set[int] = set()
+    for product, _company, _cat in rows:
+        if product.id in seen:
+            continue
+        seen.add(product.id)
+        count += 1
+        latest = product_price_repo.get_latest_price(db, product.id)
+        price = float(latest.price) if latest else 0.0
+        cur = latest.currency if latest else "EUR"
+        if min_price is None or price < min_price:
+            min_price = price
+            currency = cur
+            description = _product_description(db, product)
+    return (min_price or 0.0), currency, description, count
+
+
+def list_totem_families(
+    db: Session,
+    *,
+    offer: str = "Acquisition",
+    root_name: str = TOTEM_ROOT_DEFAULT,
+) -> TotemFamiliesResponse:
+    """
+    Familles sous Totem pour une offre (Acquisition / Location).
+
+    Structure CSV : Totem / {Famille} / {Acquisition|Location}
+    Structure alt. : Totem / {Acquisition|Location} / {Famille}
+    """
+    root = buyer_repo.find_active_root_catalog_by_name(db, root_name)
+    if root is None:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue racine « {root_name} » introuvable.",
+        )
+
+    families: list[TotemFamilyOut] = []
+    seen_family_ids: set[int] = set()
+
+    # Pattern A : Totem → Famille → Offer
+    for family in buyer_repo.list_active_catalog_children(db, root.id):
+        leaf = _find_child_by_offer(db, family.id, offer)
+        if leaf is None:
+            continue
+        min_price, currency, description, count = _cheapest_product_meta(db, leaf.id)
+        if count == 0:
+            continue
+        seen_family_ids.add(family.id)
+        raw_name = (family.name or "").strip() or "Totem"
+        display = raw_name if raw_name.casefold().startswith("totem") else f"Totem {raw_name}"
+        families.append(
+            TotemFamilyOut(
+                family_catalog_id=family.id,
+                leaf_catalog_id=leaf.id,
+                name=raw_name,
+                display_name=display,
+                description=_short_text(description),
+                min_price=min_price,
+                currency=currency,
+                product_count=count,
+                breadcrumb=repo.get_breadcrumb(db, leaf),
+            )
+        )
+
+    # Pattern B : Totem → Offer → Famille (si rien trouvé en A, ou en complément)
+    offer_node = _find_child_by_offer(db, root.id, offer)
+    if offer_node is not None:
+        for family in buyer_repo.list_active_catalog_children(db, offer_node.id):
+            if family.id in seen_family_ids:
+                continue
+            # feuille directe ou sous-feuille unique
+            leaf = family
+            children = buyer_repo.list_active_catalog_children(db, family.id)
+            if children:
+                # si la famille a encore des enfants, on agrège le min sur toutes les feuilles
+                leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, family.id)
+                min_price = None
+                currency = "EUR"
+                description = None
+                count = 0
+                for lid in leaf_ids:
+                    p, c, d, n = _cheapest_product_meta(db, lid)
+                    if n == 0:
+                        continue
+                    count += n
+                    if min_price is None or p < min_price:
+                        min_price = p
+                        currency = c
+                        description = d
+                if count == 0:
+                    continue
+                leaf = children[0]
+            else:
+                min_price, currency, description, count = _cheapest_product_meta(
+                    db, family.id
+                )
+                if count == 0:
+                    continue
+            raw_name = (family.name or "").strip() or "Totem"
+            display = (
+                raw_name if raw_name.casefold().startswith("totem") else f"Totem {raw_name}"
+            )
+            families.append(
+                TotemFamilyOut(
+                    family_catalog_id=family.id,
+                    leaf_catalog_id=leaf.id,
+                    name=raw_name,
+                    display_name=display,
+                    description=_short_text(description),
+                    min_price=min_price or 0.0,
+                    currency=currency,
+                    product_count=count,
+                    breadcrumb=repo.get_breadcrumb(db, leaf),
+                )
+            )
+
+    families.sort(key=lambda f: f.display_name.casefold())
+    return TotemFamiliesResponse(
+        root_id=root.id,
+        root_name=root.name or root_name,
+        offer=offer,
+        count=len(families),
+        families=families,
+    )
+
+
+def list_totem_family_products(
+    db: Session,
+    *,
+    family_catalog_id: int,
+    offer: str = "Acquisition",
+) -> TotemProductsResponse:
+    family = repo.get_catalog(db, family_catalog_id)
+    if family is None or not family.is_active:
+        raise ClientPortalError("not_found", "Famille totem introuvable.")
+
+    leaf = _find_child_by_offer(db, family.id, offer)
+    if leaf is None:
+        # Pattern B : la famille est déjà sous Offer, ou est elle-même la feuille
+        if _norm_offer(family.name or "") == _norm_offer(offer):
+            raise ClientPortalError(
+                "invalid_catalog",
+                f"Pas de produits pour l'offre « {offer} » sur cette famille.",
+            )
+        # Si pas d'enfant Offer, traiter family comme feuille
+        children = buyer_repo.list_active_catalog_children(db, family.id)
+        if children:
+            raise ClientPortalError(
+                "not_found",
+                f"Catalogue « {offer} » introuvable sous cette famille.",
+            )
+        leaf = family
+
+    rows = _catalog_product_rows(db, leaf.id)
+    products: list[TotemProductOut] = []
+    seen: set[int] = set()
+    for product, _company, _cat in rows:
+        if product.id in seen:
+            continue
+        seen.add(product.id)
+        latest = product_price_repo.get_latest_price(db, product.id)
+        dims = _product_dimensions(db, product.id)
+        attrs = _product_attr_map(db, product.id)
+        products.append(
+            TotemProductOut(
+                product_id=product.id,
+                product_name=product.product_name,
+                client_sku=product.client_sku,
+                price=float(latest.price) if latest else 0.0,
+                currency=latest.currency if latest else "EUR",
+                dimensions_label=_dimensions_label(dims),
+                dimensions=dims,
+                poids=_product_weight_kg(db, product.id),
+                attributes=attrs,
+            )
+        )
+
+    products.sort(key=lambda p: (p.price, p.product_name.casefold()))
+    return TotemProductsResponse(
+        family_catalog_id=family.id,
+        leaf_catalog_id=leaf.id,
+        family_name=(family.name or "").strip() or "Totem",
+        offer=offer,
+        count=len(products),
+        products=products,
+    )
+
+
+def get_totem_product_detail(db: Session, product_id: int) -> TotemProductDetailOut:
+    product = db.scalar(
+        select(Product)
+        .options(joinedload(Product.translations))
+        .where(Product.id == product_id)
+    )
+    if product is None or not product.is_active:
+        raise ClientPortalError("not_found", "Produit introuvable.")
+
+    latest = product_price_repo.get_latest_price(db, product.id)
+    dims = _product_dimensions(db, product.id)
+    attrs = _product_attr_map(db, product.id)
+    description = _product_description(db, product)
+    detail_raw = _attr_ci(attrs, "Détail", "Detail", "Détails", "Details")
+    fiche_key = (product.product_name or "").strip() or None
+    fiche_available = False
+    if fiche_key:
+        import json
+        from app.core.config import settings
+
+        raw = (settings.FICHE_TECHNIQUE_DRIVE_MAP or "").strip()
+        try:
+            data = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            data = {}
+        if isinstance(data, dict):
+            keys = {str(k).strip().casefold() for k in data if str(k).strip()}
+            fiche_available = fiche_key.casefold() in keys
+
+    return TotemProductDetailOut(
+        product_id=product.id,
+        product_name=product.product_name,
+        client_sku=product.client_sku,
+        price=float(latest.price) if latest else 0.0,
+        currency=latest.currency if latest else "EUR",
+        description=description,
+        dimensions_label=_dimensions_label(dims),
+        dimensions=dims,
+        poids=_product_weight_kg(db, product.id),
+        footprint=_attr_ci(attrs, "Encombrement au sol", "Encombrement"),
+        panel_format=_attr_ci(attrs, "Format panneau imprimé", "Format panneau"),
+        attributes=attrs,
+        detail_bullets=_parse_detail_bullets(detail_raw),
+        fiche_document_key=fiche_key,
+        fiche_available=fiche_available,
     )

@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     client_portal,
     clients,
     clients_v2,
+    documents,
     metrics,
     supplier_portal,
     supplier_shipping_payment,
@@ -68,6 +69,12 @@ api_router.include_router(
     client_portal.router,
     prefix="/client-portal",
     tags=["client-portal"],
+)
+
+api_router.include_router(
+    documents.router,
+    prefix="/documents",
+    tags=["documents"],
 )
 
 api_router.include_router(

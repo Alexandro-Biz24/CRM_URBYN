@@ -10,6 +10,7 @@ from decimal import Decimal
 from app.models import (
     Catalog,
     CatalogAttributeDefinition,
+    CatalogLink,
     CatalogProduct,
     Company,
     Language,
@@ -402,9 +403,13 @@ def _find_child_by_name(db: Session, parent_id: int, name: str) -> Catalog | Non
 
 def ensure_catalog_path(
     db: Session, segments: list[str]
-) -> tuple[Catalog, set[int]]:
-    """Crée / réutilise le chemin racine→feuille. Retourne (feuille, ids créés)."""
+) -> tuple[Catalog, set[int], list[int]]:
+    """
+    Crée / réutilise le chemin racine→feuille.
+    Retourne (feuille, ids créés, ids de toute la chaîne).
+    """
     created_ids: set[int] = set()
+    chain: list[int] = []
     parent: Catalog | None = None
     leaf: Catalog | None = None
 
@@ -441,10 +446,11 @@ def ensure_catalog_path(
                 created_ids.add(current.id)
         parent = current
         leaf = current
+        chain.append(current.id)
 
     if leaf is None:
         raise ValueError("empty_catalog_path")
-    return leaf, created_ids
+    return leaf, created_ids, chain
 
 
 def clear_catalog_products(db: Session, catalog_id: int) -> int:
@@ -453,6 +459,76 @@ def clear_catalog_products(db: Session, catalog_id: int) -> int:
     )
     db.flush()
     return int(result.rowcount or 0)
+
+
+def list_direct_child_catalogs(db: Session, parent_id: int) -> list[Catalog]:
+    return list(
+        db.scalars(
+            select(Catalog).where(
+                Catalog.parent_id == parent_id,
+                Catalog.id != parent_id,
+            )
+        ).all()
+    )
+
+
+def collect_descendant_catalog_ids(db: Session, catalog_id: int) -> list[int]:
+    """Tous les descendants (pas le nœud lui-même), ordre profondeur d'abord."""
+    result: list[int] = []
+
+    def _walk(parent_id: int) -> None:
+        for child in list_direct_child_catalogs(db, parent_id):
+            _walk(child.id)
+            result.append(child.id)
+
+    _walk(catalog_id)
+    return result
+
+
+def _force_delete_catalog_node(db: Session, catalog_id: int, *, reassign_orders_to: int) -> None:
+    """
+    Supprime un nœud catalogue (sans supprimer les produits).
+    Les commandes liées sont réassignées à reassign_orders_to.
+    """
+    clear_catalog_products(db, catalog_id)
+    db.execute(
+        update(ProductOrder)
+        .where(ProductOrder.catalog_id == catalog_id)
+        .values(catalog_id=reassign_orders_to)
+    )
+    db.execute(
+        delete(CatalogAttributeDefinition).where(
+            CatalogAttributeDefinition.catalog_id == catalog_id
+        )
+    )
+    db.execute(
+        delete(CatalogLink).where(
+            (CatalogLink.from_catalog_id == catalog_id)
+            | (CatalogLink.to_catalog_id == catalog_id)
+        )
+    )
+    db.execute(delete(Catalog).where(Catalog.id == catalog_id))
+    db.flush()
+
+
+def purge_catalog_subtree(db: Session, catalog_id: int) -> int:
+    """
+    Mode destructif : vide les produits du catalogue et détruit TOUS ses
+    catalogues enfants (récursif). Le nœud racine est conservé (vidé seulement).
+    Retourne le nombre de catalogues touchés (racine + enfants supprimés).
+    """
+    catalog = get_catalog(db, catalog_id)
+    if catalog is None:
+        return 0
+
+    descendants = collect_descendant_catalog_ids(db, catalog_id)
+    # descendants déjà en profondeur d'abord
+    for child_id in descendants:
+        _force_delete_catalog_node(db, child_id, reassign_orders_to=catalog_id)
+
+    clear_catalog_products(db, catalog_id)
+    db.flush()
+    return 1 + len(descendants)
 
 
 def create_imported_product(
