@@ -123,14 +123,17 @@ def _download_drive_public(file_id: str) -> tuple[bytes, str]:
 
 def _download_drive_service_account(file_id: str) -> tuple[bytes, str]:
     try:
-        from google.auth.transport.requests import Request
         from google.oauth2 import service_account
     except ImportError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
                 "code": "google_auth_missing",
-                "message": "Installez google-auth pour le mode service_account.",
+                "message": (
+                    "Le package google-auth est manquant sur le serveur. "
+                    "Ajoute-le aux dépendances et redéploie. "
+                    f"Détail: {exc}"
+                ),
             },
         ) from exc
 
@@ -146,7 +149,29 @@ def _download_drive_service_account(file_id: str) -> tuple[bytes, str]:
 
     scopes = ["https://www.googleapis.com/auth/drive.readonly"]
     creds = service_account.Credentials.from_service_account_info(info, scopes=scopes)
-    creds.refresh(Request())
+
+    # Refresh du token via httpx (évite la dépendance optionnelle « requests »)
+    class _HttpxAuthResponse:
+        def __init__(self, response: httpx.Response):
+            self.status = response.status_code
+            self.headers = response.headers
+            self.data = response.content
+
+    class _HttpxAuthRequest:
+        def __call__(
+            self,
+            url,
+            method="GET",
+            body=None,
+            headers=None,
+            timeout=None,
+            **_kwargs,
+        ):
+            with httpx.Client(timeout=timeout or 60.0) as client:
+                response = client.request(method, url, content=body, headers=headers)
+                return _HttpxAuthResponse(response)
+
+    creds.refresh(_HttpxAuthRequest())
 
     url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
     headers = {"Authorization": f"Bearer {creds.token}"}
