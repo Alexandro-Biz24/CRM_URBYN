@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     ADMIN_ID: str = ""
     ADMIN_PWD: str = ""
 
+    # Fiches techniques totem (Google Drive) — secrets uniquement côté serveur
+    # JSON: {"caisson-bois-80":"<DRIVE_FILE_ID>", "sign-iz":"<DRIVE_FILE_ID>", ...}
+    FICHE_TECHNIQUE_DRIVE_MAP: str = ""
+    # Chemin vers le JSON du compte de service Google, OU JSON inline
+    GOOGLE_SERVICE_ACCOUNT_JSON: str | None = None
+    # public = liens Drive « toute personne disposant du lien » ; service_account = Drive privé
+    FICHE_TECHNIQUE_DRIVE_MODE: str = "public"
+
     @property
     def admin_id(self) -> str:
         return self.ADMIN_ID.strip()

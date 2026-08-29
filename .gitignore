@@ -17,6 +17,7 @@ backend/.ruff_cache/
 backend/htmlcov/
 backend/.coverage
 backend/dist/
+backend/secrets/
 backend/build/
 backend/*.egg-info/
 backend/OLD_DATA/

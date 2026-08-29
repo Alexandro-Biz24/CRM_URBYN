@@ -45,6 +45,7 @@ class ProductDimensionsOut(BaseModel):
     longueur: float | None = None
     largeur: float | None = None
     hauteur: float | None = None
+    profondeur: float | None = None
     volume: float | None = None
 
 
@@ -143,6 +144,70 @@ class MassifProductsResponse(BaseModel):
     poids_max: float
     count: int
     products: list[MassifProductOut] = Field(default_factory=list)
+
+
+# ── Totem (racine « Totem », feuilles Acquisition / Location) ─────────────────
+
+TOTEM_ROOT_DEFAULT = "Totem"
+
+
+class TotemFamilyOut(BaseModel):
+    family_catalog_id: int
+    leaf_catalog_id: int
+    name: str
+    display_name: str
+    description: str | None = None
+    min_price: float
+    currency: str = "EUR"
+    product_count: int = 0
+    breadcrumb: list[str] = Field(default_factory=list)
+
+
+class TotemFamiliesResponse(BaseModel):
+    root_id: int
+    root_name: str
+    offer: str
+    count: int
+    families: list[TotemFamilyOut] = Field(default_factory=list)
+
+
+class TotemProductOut(BaseModel):
+    product_id: int
+    product_name: str
+    client_sku: str | None = None
+    price: float
+    currency: str = "EUR"
+    dimensions_label: str | None = None
+    dimensions: ProductDimensionsOut = Field(default_factory=ProductDimensionsOut)
+    poids: float | None = None
+    attributes: dict[str, str] = Field(default_factory=dict)
+
+
+class TotemProductsResponse(BaseModel):
+    family_catalog_id: int
+    leaf_catalog_id: int
+    family_name: str
+    offer: str
+    count: int
+    products: list[TotemProductOut] = Field(default_factory=list)
+
+
+class TotemProductDetailOut(BaseModel):
+    product_id: int
+    product_name: str
+    client_sku: str | None = None
+    price: float
+    currency: str = "EUR"
+    description: str | None = None
+    dimensions_label: str | None = None
+    dimensions: ProductDimensionsOut = Field(default_factory=ProductDimensionsOut)
+    poids: float | None = None
+    footprint: str | None = None
+    panel_format: str | None = None
+    attributes: dict[str, str] = Field(default_factory=dict)
+    detail_bullets: list[str] = Field(default_factory=list)
+    fiche_document_key: str | None = None
+    fiche_available: bool = False
 
 
 class BuyerShippingOption(BaseModel):
