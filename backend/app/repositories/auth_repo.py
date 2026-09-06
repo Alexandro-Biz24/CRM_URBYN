@@ -92,16 +92,20 @@ def mark_email_verified(db: Session, user_id: int) -> None:
     )
 
 
-def invalidate_pending_codes(db: Session, user_id: int) -> None:
+def invalidate_pending_codes(
+    db: Session,
+    user_id: int,
+    *,
+    purpose: str | None = None,
+) -> None:
     now = datetime.utcnow()
-    db.execute(
-        update(EmailVerificationCode)
-        .where(
-            EmailVerificationCode.user_id == user_id,
-            EmailVerificationCode.used_at.is_(None),
-        )
-        .values(used_at=now)
-    )
+    cond = [
+        EmailVerificationCode.user_id == user_id,
+        EmailVerificationCode.used_at.is_(None),
+    ]
+    if purpose is not None:
+        cond.append(EmailVerificationCode.purpose == purpose)
+    db.execute(update(EmailVerificationCode).where(*cond).values(used_at=now))
 
 
 def create_verification_code(
@@ -110,26 +114,41 @@ def create_verification_code(
     user_id: int,
     code_hash: str,
     expires_at: datetime,
+    purpose: str | None = None,
+    payload: str | None = None,
 ) -> EmailVerificationCode:
     record = EmailVerificationCode(
         user_id=user_id,
         code_hash=code_hash,
         expires_at=expires_at,
+        purpose=purpose,
+        payload=payload,
     )
     db.add(record)
     db.flush()
     return record
 
 
-def get_latest_valid_code(db: Session, user_id: int) -> EmailVerificationCode | None:
+def get_latest_valid_code(
+    db: Session,
+    user_id: int,
+    *,
+    purpose: str | None = None,
+) -> EmailVerificationCode | None:
     now = datetime.utcnow()
+    cond = [
+        EmailVerificationCode.user_id == user_id,
+        EmailVerificationCode.used_at.is_(None),
+        EmailVerificationCode.expires_at > now,
+    ]
+    if purpose is not None:
+        cond.append(EmailVerificationCode.purpose == purpose)
+    else:
+        # Compat anciens flux signup/reset (purpose NULL)
+        cond.append(EmailVerificationCode.purpose.is_(None))
     stmt = (
         select(EmailVerificationCode)
-        .where(
-            EmailVerificationCode.user_id == user_id,
-            EmailVerificationCode.used_at.is_(None),
-            EmailVerificationCode.expires_at > now,
-        )
+        .where(*cond)
         .order_by(EmailVerificationCode.created_at.desc())
         .limit(1)
     )

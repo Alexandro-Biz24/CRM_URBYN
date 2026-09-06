@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -126,11 +127,16 @@ class MassifProductOut(BaseModel):
     product_id: int
     product_name: str
     admin_sku: str
+    description: str | None = None
     poids: float
     dimensions: ProductDimensionsOut
     price: float
     currency: str
     company_name: str | None = None
+    company_tva: str | None = None
+    company_zip: str | None = None
+    company_city: str | None = None
+    company_country: str | None = None
     catalog_id: int
     catalog_name: str | None = None
     mandatory_attributes: list[MandatoryAttributeValueOut] = Field(default_factory=list)
@@ -144,6 +150,50 @@ class MassifProductsResponse(BaseModel):
     poids_max: float
     count: int
     products: list[MassifProductOut] = Field(default_factory=list)
+
+
+class MassifManilleOut(BaseModel):
+    product_id: int
+    product_name: str
+    admin_sku: str
+    description: str | None = None
+    manille_type: str
+    price: float
+    currency: str = "EUR"
+    company_name: str | None = None
+    company_tva: str | None = None
+    poids: float | None = None
+
+
+class MassifManillesResponse(BaseModel):
+    catalog_id: int
+    catalog_path: list[str] = Field(default_factory=list)
+    count: int
+    manilles: list[MassifManilleOut] = Field(default_factory=list)
+
+
+class TotemBallastOut(BaseModel):
+    """Lest 25 kg du catalogue [Totem/Accessoire]."""
+
+    product_id: int
+    product_name: str
+    client_sku: str | None = None
+    admin_sku: str | None = None
+    description: str | None = None
+    price: float
+    currency: str = "EUR"
+    poids: float | None = None
+    company_name: str | None = None
+    company_tva: str | None = None
+
+
+class TotemBallastsResponse(BaseModel):
+    catalog_id: int
+    catalog_path: list[str] = Field(default_factory=list)
+    count: int
+    ballasts: list[TotemBallastOut] = Field(default_factory=list)
+    # Produit lest 25 kg privilégié pour le front conformité vent
+    default_ballast: TotemBallastOut | None = None
 
 
 # ── Totem (racine « Totem », feuilles Acquisition / Location) ─────────────────
@@ -160,6 +210,7 @@ class TotemFamilyOut(BaseModel):
     min_price: float
     currency: str = "EUR"
     product_count: int = 0
+    min_dimensions_label: str | None = None
     breadcrumb: list[str] = Field(default_factory=list)
 
 
@@ -208,6 +259,47 @@ class TotemProductDetailOut(BaseModel):
     detail_bullets: list[str] = Field(default_factory=list)
     fiche_document_key: str | None = None
     fiche_available: bool = False
+    company_name: str | None = None
+    company_tva: str | None = None
+
+
+class TotemWindSheetProductIn(BaseModel):
+    cart_item_id: str | None = None
+    product_id: int | None = None
+    product_name: str | None = None
+    client_sku: str | None = None
+    format: str | None = None
+
+
+class TotemWindSheetLookupRequest(BaseModel):
+    """Région (zone vent) + terrain UI → écriture Sheets + lookup valeurs totems."""
+
+    wind_zone: int = Field(..., ge=1, le=4, description="Zone de vent 1..4 → Région N")
+    terrain: str = Field(
+        ...,
+        min_length=1,
+        description="Clé UI (bord_mer, …) ou label sheet exact",
+    )
+    products: list[TotemWindSheetProductIn] = Field(default_factory=list)
+
+
+class TotemWindSheetProductOut(BaseModel):
+    cart_item_id: str | None = None
+    product_id: int | None = None
+    product_name: str | None = None
+    sheet_header: str | None = None
+    supported: bool
+    matched: bool = False
+    value: Any = None
+    message: str | None = None
+
+
+class TotemWindSheetLookupResponse(BaseModel):
+    region_sheet: str
+    terrain_sheet: str
+    write_ok: bool
+    settle_ms: int
+    products: list[TotemWindSheetProductOut] = Field(default_factory=list)
 
 
 class BuyerShippingOption(BaseModel):
