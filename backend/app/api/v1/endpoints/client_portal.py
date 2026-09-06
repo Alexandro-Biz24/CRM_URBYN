@@ -14,13 +14,21 @@ from app.schemas.client_portal import (
     CartSnapshotOut,
     CartSnapshotPut,
     MassifLeafCatalogsResponse,
+    MassifManillesResponse,
     MassifProductsRequest,
     MassifProductsResponse,
+    MassifWeightBandsResponse,
     ProductWeightFilterRequest,
     ProductWeightFilterResponse,
     ShippingCheckRequest,
     ShippingCheckResponse,
     ShippingQuoteRequest,
+    TotemBallastsResponse,
+    TotemFamiliesResponse,
+    TotemProductDetailOut,
+    TotemProductsResponse,
+    TotemWindSheetLookupRequest,
+    TotemWindSheetLookupResponse,
 )
 from app.schemas.supplier_portal import CatalogOut, PortalContext, PortalSession
 from app.services.client_portal import (
@@ -33,10 +41,16 @@ from app.services.client_portal import (
     get_context,
     get_product_card,
     get_product_detail,
+    get_totem_product_detail,
     list_catalog_products,
+    list_massif_available_weight_bands,
     list_massif_leaf_catalogs,
+    list_massif_manilles,
     list_massif_products,
     list_root_catalogs,
+    list_totem_ballasts,
+    list_totem_families,
+    list_totem_family_products,
     put_cart_snapshot,
     remove_cart_item,
     request_shipping_quote,
@@ -44,6 +58,7 @@ from app.services.client_portal import (
     search_products_by_weight,
     update_cart_item,
 )
+from app.services.totem_wind_sheet import TotemWindSheetError, lookup_totem_wind_sheet
 
 router = APIRouter()
 
@@ -138,11 +153,30 @@ def portal_search_products_by_weight(
 @router.get("/massif/leaf-catalogs", response_model=MassifLeafCatalogsResponse)
 def portal_massif_leaf_catalogs(
     root_name: str = Query("Massif Type", min_length=1),
+    poids_min: float | None = Query(None, ge=0),
+    poids_max: float | None = Query(None, ge=0),
     db: Session = Depends(get_db),
 ) -> MassifLeafCatalogsResponse:
-    """Catalogues feuilles (sans enfants) sous la racine Massif Type."""
+    """Catalogues feuilles sous Massif Type, optionnellement filtrés par fourchette de poids."""
     try:
-        return list_massif_leaf_catalogs(db, root_name=root_name)
+        return list_massif_leaf_catalogs(
+            db,
+            root_name=root_name,
+            poids_min=poids_min,
+            poids_max=poids_max,
+        )
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/massif/weight-bands", response_model=MassifWeightBandsResponse)
+def portal_massif_weight_bands(
+    root_name: str = Query("Massif Type", min_length=1),
+    db: Session = Depends(get_db),
+) -> MassifWeightBandsResponse:
+    """Fourchettes de poids disponibles (au moins 1 produit) sous Massif Type."""
+    try:
+        return list_massif_available_weight_bands(db, root_name=root_name)
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
 
@@ -158,6 +192,81 @@ def portal_massif_products(
         return list_massif_products(db, payload, root_name=root_name)
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
+
+
+@router.get("/massif/manilles", response_model=MassifManillesResponse)
+def portal_massif_manilles(db: Session = Depends(get_db)) -> MassifManillesResponse:
+    """Manilles du catalogue [Massif/Accessoire], pour matching par « Manille Type »."""
+    try:
+        return list_massif_manilles(db)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/totem/families", response_model=TotemFamiliesResponse)
+def portal_totem_families(
+    offer: str = Query("Acquisition", min_length=1),
+    root_name: str = Query("Totem", min_length=1),
+    db: Session = Depends(get_db),
+) -> TotemFamiliesResponse:
+    """Familles totem sous Acquisition ou Location (prix min + description)."""
+    try:
+        return list_totem_families(db, offer=offer, root_name=root_name)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get(
+    "/totem/families/{family_catalog_id}/products",
+    response_model=TotemProductsResponse,
+)
+def portal_totem_family_products(
+    family_catalog_id: int,
+    offer: str = Query("Acquisition", min_length=1),
+    db: Session = Depends(get_db),
+) -> TotemProductsResponse:
+    """Produits d'une famille totem pour une offre (Acquisition / Location)."""
+    try:
+        return list_totem_family_products(
+            db, family_catalog_id=family_catalog_id, offer=offer
+        )
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/totem/products/{product_id}", response_model=TotemProductDetailOut)
+def portal_totem_product_detail(
+    product_id: int,
+    db: Session = Depends(get_db),
+) -> TotemProductDetailOut:
+    """Fiche détail totem (attributs, bullets Détail, clé fiche technique)."""
+    try:
+        return get_totem_product_detail(db, product_id)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/totem/ballasts", response_model=TotemBallastsResponse)
+def portal_totem_ballasts(db: Session = Depends(get_db)) -> TotemBallastsResponse:
+    """Lests 25 kg du catalogue [Totem/Accessoire] (conformité vent)."""
+    try:
+        return list_totem_ballasts(db)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post("/totem/wind-sheet-lookup", response_model=TotemWindSheetLookupResponse)
+def portal_totem_wind_sheet_lookup(
+    payload: TotemWindSheetLookupRequest,
+) -> TotemWindSheetLookupResponse:
+    """Écrit Région + Terrain sur Google Sheets, puis lit la valeur totem (B21→B46)."""
+    try:
+        return lookup_totem_wind_sheet(payload)
+    except TotemWindSheetError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
 
 
 @router.get("/products/{product_id}", response_model=BuyerProductCard)
