@@ -14,6 +14,7 @@ from app.schemas.client_portal import (
     CartSnapshotOut,
     CartSnapshotPut,
     MassifLeafCatalogsResponse,
+    MassifManillesResponse,
     MassifProductsRequest,
     MassifProductsResponse,
     MassifWeightBandsResponse,
@@ -22,9 +23,12 @@ from app.schemas.client_portal import (
     ShippingCheckRequest,
     ShippingCheckResponse,
     ShippingQuoteRequest,
+    TotemBallastsResponse,
     TotemFamiliesResponse,
     TotemProductDetailOut,
     TotemProductsResponse,
+    TotemWindSheetLookupRequest,
+    TotemWindSheetLookupResponse,
 )
 from app.schemas.supplier_portal import CatalogOut, PortalContext, PortalSession
 from app.services.client_portal import (
@@ -41,8 +45,10 @@ from app.services.client_portal import (
     list_catalog_products,
     list_massif_available_weight_bands,
     list_massif_leaf_catalogs,
+    list_massif_manilles,
     list_massif_products,
     list_root_catalogs,
+    list_totem_ballasts,
     list_totem_families,
     list_totem_family_products,
     put_cart_snapshot,
@@ -52,6 +58,7 @@ from app.services.client_portal import (
     search_products_by_weight,
     update_cart_item,
 )
+from app.services.totem_wind_sheet import TotemWindSheetError, lookup_totem_wind_sheet
 
 router = APIRouter()
 
@@ -187,6 +194,15 @@ def portal_massif_products(
         raise _http_error(exc) from exc
 
 
+@router.get("/massif/manilles", response_model=MassifManillesResponse)
+def portal_massif_manilles(db: Session = Depends(get_db)) -> MassifManillesResponse:
+    """Manilles du catalogue [Massif/Accessoire], pour matching par « Manille Type »."""
+    try:
+        return list_massif_manilles(db)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
 @router.get("/totem/families", response_model=TotemFamiliesResponse)
 def portal_totem_families(
     offer: str = Query("Acquisition", min_length=1),
@@ -228,6 +244,29 @@ def portal_totem_product_detail(
         return get_totem_product_detail(db, product_id)
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
+
+
+@router.get("/totem/ballasts", response_model=TotemBallastsResponse)
+def portal_totem_ballasts(db: Session = Depends(get_db)) -> TotemBallastsResponse:
+    """Lests 25 kg du catalogue [Totem/Accessoire] (conformité vent)."""
+    try:
+        return list_totem_ballasts(db)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post("/totem/wind-sheet-lookup", response_model=TotemWindSheetLookupResponse)
+def portal_totem_wind_sheet_lookup(
+    payload: TotemWindSheetLookupRequest,
+) -> TotemWindSheetLookupResponse:
+    """Écrit Région + Terrain sur Google Sheets, puis lit la valeur totem (B21→B46)."""
+    try:
+        return lookup_totem_wind_sheet(payload)
+    except TotemWindSheetError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
 
 
 @router.get("/products/{product_id}", response_model=BuyerProductCard)

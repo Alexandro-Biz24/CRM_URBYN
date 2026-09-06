@@ -87,8 +87,46 @@ def _load_service_account_info() -> dict | None:
         if not path.is_absolute():
             path = ROOT / path
         if path.is_file():
-            return json.loads(path.read_text(encoding="utf-8"))
-    return json.loads(raw)
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail={
+                        "code": "invalid_service_account_json",
+                        "message": f"JSON compte de service invalide ({path}).",
+                    },
+                ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "service_account_file_missing",
+                "message": (
+                    f"Fichier compte de service introuvable : {path}. "
+                    "En prod (Render), colle le JSON complet dans "
+                    "GOOGLE_SERVICE_ACCOUNT_JSON (pas un chemin local)."
+                ),
+            },
+        )
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "invalid_service_account_json",
+                "message": "GOOGLE_SERVICE_ACCOUNT_JSON n'est pas un JSON valide.",
+            },
+        ) from exc
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "invalid_service_account_json",
+                "message": "GOOGLE_SERVICE_ACCOUNT_JSON doit être un objet JSON.",
+            },
+        )
+    return data
 
 
 def _download_drive_public(file_id: str) -> tuple[bytes, str]:

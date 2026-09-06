@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    account_orders,
     admin,
     auth,
     client_orders_v2,
@@ -87,5 +88,11 @@ api_router.include_router(
     supplier_shipping_payment.router,
     prefix="/supplier-portal",
     tags=["supplier-portal"],
+)
+
+api_router.include_router(
+    account_orders.router,
+    prefix="",
+    tags=["account-orders"],
 )
 

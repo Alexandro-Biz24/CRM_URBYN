@@ -31,6 +31,7 @@ from .shipping_rate import ShippingRate
 # Orders & payments
 from .order import Order
 from .order_item import ProductOrder
+from .client_order import ClientOrder, ClientOrderItem
 from .payment import Payment
 
 # Reviews
