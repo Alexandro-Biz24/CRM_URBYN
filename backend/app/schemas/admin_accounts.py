@@ -60,6 +60,7 @@ class AdminCompaniesListResponse(BaseModel):
 class AdminAddressOut(BaseModel):
     id: int
     type: str
+    label: str | None = None
     street: str | None
     city: str | None
     zip_code: str | None

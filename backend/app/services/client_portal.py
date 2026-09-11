@@ -5,7 +5,7 @@ import re
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Company, Product
+from app.models import AddressCatalog, Catalog, CatalogProduct, Company, Product
 from app.models.address import Address
 from app.repositories import cart_repo
 from app.repositories import client_portal_repo as buyer_repo
@@ -27,6 +27,8 @@ from app.schemas.client_portal import (
     MassifLeafCatalogsResponse,
     MassifManilleOut,
     MassifManillesResponse,
+    MassifPaletteOut,
+    MassifPaletteResponse,
     MassifProductOut,
     MassifProductsRequest,
     MassifProductsResponse,
@@ -823,11 +825,8 @@ def list_massif_products(
         ]
         company_zip = company_city = company_country = None
         if company is not None:
-            addr = _primary_company_address(db, company.tva_intra_com)
-            if addr is not None:
-                company_zip = addr.zip_code
-                company_city = addr.city
-                company_country = addr.country_code
+            company_zip, company_city, _addr_id = resolve_product_origin_zip(db, product)
+            company_country = "FR"
         products.append(
             MassifProductOut(
                 product_id=product.id,
@@ -935,6 +934,47 @@ def list_massif_manilles(db: Session) -> MassifManillesResponse:
     )
 
 
+def get_massif_palette(db: Session) -> MassifPaletteResponse:
+    """Produit « Palette » du catalogue [Massif/Accessoire]."""
+    root, accessoire = _resolve_massif_accessoire_catalog(db)
+    if root is None or accessoire is None:
+        raise ClientPortalError(
+            "not_found",
+            "Catalogue « Massif / Accessoire » introuvable.",
+        )
+
+    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [accessoire.id])
+    palette_out: MassifPaletteOut | None = None
+    for product, company, _cat in rows:
+        name_cf = (product.product_name or "").casefold().strip()
+        if name_cf != "palette" and "palette" not in name_cf:
+            continue
+        # Éviter les faux positifs type « transpalette » dans une description produit
+        if name_cf != "palette" and not name_cf.startswith("palette"):
+            continue
+        latest = product_price_repo.get_latest_price(db, product.id)
+        palette_out = MassifPaletteOut(
+            product_id=product.id,
+            product_name=product.product_name,
+            admin_sku=product.admin_sku,
+            client_sku=product.client_sku,
+            description=_product_description(db, product),
+            price=float(latest.price) if latest else 0.0,
+            currency=latest.currency if latest else "EUR",
+            company_name=company.company_name if company else None,
+            company_tva=company.tva_intra_com if company else None,
+            poids=_product_weight_kg(db, product.id),
+        )
+        if name_cf == "palette":
+            break
+
+    return MassifPaletteResponse(
+        catalog_id=accessoire.id,
+        catalog_path=[root.name or "Massif", accessoire.name or "Accessoire"],
+        palette=palette_out,
+    )
+
+
 def _resolve_totem_accessoire_catalog(db: Session):
     """Feuille « Accessoire » sous la racine « Totem » ([Totem/Accessoire])."""
     root = buyer_repo.find_active_root_catalog_by_name(db, "Totem")
@@ -1012,6 +1052,10 @@ def list_totem_ballasts(db: Session) -> TotemBallastsResponse:
 
 # ── Totem ─────────────────────────────────────────────────────────────────────
 
+FALLBACK_ORIGIN_ZIP = "75015"
+FALLBACK_ORIGIN_CITY = "Paris"
+
+
 def _primary_company_address(db: Session, company_tva: str):
     """Adresse principale (ou première) d'une société fournisseur."""
     return db.scalar(
@@ -1020,6 +1064,121 @@ def _primary_company_address(db: Session, company_tva: str):
         .order_by(Address.is_primary.desc(), Address.id.asc())
         .limit(1)
     )
+
+
+def _catalog_ancestor_ids(db: Session, catalog_ids: set[int]) -> dict[int, int]:
+    """Map catalog_id → profondeur (0 = catalogue direct du produit)."""
+    if not catalog_ids:
+        return {}
+    depth_by_id: dict[int, int] = {cid: 0 for cid in catalog_ids}
+    frontier = set(catalog_ids)
+    depth = 0
+    # Remonte les parents (parent_id == id ⇒ racine)
+    while frontier and depth < 32:
+        depth += 1
+        rows = db.execute(
+            select(Catalog.id, Catalog.parent_id).where(Catalog.id.in_(frontier))
+        ).all()
+        next_frontier: set[int] = set()
+        for cid, parent_id in rows:
+            if parent_id is None or parent_id == cid:
+                continue
+            if parent_id not in depth_by_id:
+                depth_by_id[parent_id] = depth
+                next_frontier.add(parent_id)
+        frontier = next_frontier
+    return depth_by_id
+
+
+def _norm_company_name(name: str | None) -> str:
+    return " ".join((name or "").casefold().split())
+
+
+def _address_company_match_score(
+    db: Session, product_company_tva: str, address_company_tva: str
+) -> int | None:
+    """0 = même TVA, 1 = même raison sociale (ex. Urbanize / URBANIZE), sinon None."""
+    if address_company_tva == product_company_tva:
+        return 0
+    product_co = db.get(Company, product_company_tva)
+    address_co = db.get(Company, address_company_tva)
+    if not product_co or not address_co:
+        return None
+    p_name = _norm_company_name(product_co.company_name)
+    a_name = _norm_company_name(address_co.company_name)
+    if p_name and a_name and p_name == a_name:
+        return 1
+    return None
+
+
+def _address_from_catalog_links(db: Session, product: Product) -> Address | None:
+    """Résout l'adresse d'origine via association adresse↔catalogue (héritage parents).
+
+    Matching fournisseur :
+    1) même TVA produit/adresse
+    2) sinon même raison sociale (évite le split Urbanize / URBANIZE à 2 TVA)
+    Ne prend jamais l'adresse d'un autre fournisseur sur le même catalogue.
+    """
+    product_catalog_ids = set(
+        db.scalars(
+            select(CatalogProduct.catalog_id).where(
+                CatalogProduct.product_id == product.id
+            )
+        ).all()
+    )
+    if not product_catalog_ids:
+        return None
+
+    depth_by_catalog = _catalog_ancestor_ids(db, product_catalog_ids)
+    candidate_catalog_ids = list(depth_by_catalog.keys())
+    rows = db.execute(
+        select(Address, AddressCatalog.catalog_id)
+        .join(AddressCatalog, AddressCatalog.address_id == Address.id)
+        .where(AddressCatalog.catalog_id.in_(candidate_catalog_ids))
+    ).all()
+    if not rows:
+        return None
+
+    # Plus spécifique = profondeur min, puis meilleur match société, puis id adresse
+    best: Address | None = None
+    best_key: tuple[int, int, int] | None = None
+    for addr, catalog_id in rows:
+        score = _address_company_match_score(
+            db, product.company_tva_intra_com, addr.company_tva_intra_com
+        )
+        if score is None:
+            continue
+        d = depth_by_catalog.get(catalog_id, 10**9)
+        key = (d, score, addr.id)
+        if best_key is None or key < best_key:
+            best = addr
+            best_key = key
+    return best
+
+
+def _product_origin_address(db: Session, product: Product) -> Address | None:
+    """Origine expédition : catalogue associé → address_id produit → None (fallback 75015)."""
+    via_catalog = _address_from_catalog_links(db, product)
+    if via_catalog is not None:
+        return via_catalog
+    if product.address_id:
+        addr = db.get(Address, product.address_id)
+        if (
+            addr is not None
+            and addr.company_tva_intra_com == product.company_tva_intra_com
+        ):
+            return addr
+    return None
+
+
+def resolve_product_origin_zip(
+    db: Session, product: Product
+) -> tuple[str, str | None, int | None]:
+    """(zip, city, address_id) — fallback Paris 75015 si aucune adresse référencée."""
+    addr = _product_origin_address(db, product)
+    if addr is not None and (addr.zip_code or "").strip():
+        return (addr.zip_code or "").strip(), addr.city, addr.id
+    return FALLBACK_ORIGIN_ZIP, FALLBACK_ORIGIN_CITY, None
 
 
 def _norm_offer(offer: str) -> str:
@@ -1467,6 +1626,7 @@ def get_totem_product_detail(db: Session, product_id: int) -> TotemProductDetail
             fiche_available = fiche_key.casefold() in keys
 
     company = db.get(Company, product.company_tva_intra_com)
+    origin_zip, origin_city, origin_address_id = resolve_product_origin_zip(db, product)
 
     return TotemProductDetailOut(
         product_id=product.id,
@@ -1486,4 +1646,7 @@ def get_totem_product_detail(db: Session, product_id: int) -> TotemProductDetail
         fiche_available=fiche_available,
         company_name=company.company_name if company else None,
         company_tva=product.company_tva_intra_com,
+        company_zip=origin_zip,
+        company_city=origin_city,
+        origin_address_id=origin_address_id,
     )

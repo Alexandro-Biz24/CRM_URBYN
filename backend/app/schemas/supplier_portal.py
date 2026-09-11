@@ -66,6 +66,8 @@ class ProductOut(BaseModel):
     price: float
     currency: str
     is_active: bool
+    address_id: int | None = None
+    address_label: str | None = None
     mandatory_attributes: list[MandatoryAttributeValueOut] = []
 
 
@@ -78,6 +80,7 @@ class ProductWrite(BaseModel):
     price: float = Field(..., ge=0)
     currency: str = Field(..., min_length=3, max_length=3)
     is_active: bool = True
+    address_id: int | None = None
     mandatory_attributes: list[MandatoryAttributeValueWrite] = Field(default_factory=list)
 
 

@@ -298,6 +298,7 @@ def create_product(db: Session, company_id: str, data: ProductWrite) -> Product:
         client_sku=data.client_sku.strip(),
         product_name=data.product_name.strip(),
         is_active=data.is_active,
+        address_id=data.address_id,
     )
     db.add(product)
     db.flush()
@@ -322,6 +323,7 @@ def update_product(db: Session, product: Product, data: ProductWrite) -> Product
     product.client_sku = data.client_sku.strip()
     product.product_name = data.product_name.strip()
     product.is_active = data.is_active
+    product.address_id = data.address_id
     product.updated_at = datetime.utcnow()
 
     sync_catalog_products(db, product.id, catalog_ids)

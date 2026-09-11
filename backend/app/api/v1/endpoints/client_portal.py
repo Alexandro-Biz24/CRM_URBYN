@@ -15,6 +15,7 @@ from app.schemas.client_portal import (
     CartSnapshotPut,
     MassifLeafCatalogsResponse,
     MassifManillesResponse,
+    MassifPaletteResponse,
     MassifProductsRequest,
     MassifProductsResponse,
     MassifWeightBandsResponse,
@@ -46,6 +47,7 @@ from app.services.client_portal import (
     list_massif_available_weight_bands,
     list_massif_leaf_catalogs,
     list_massif_manilles,
+    get_massif_palette,
     list_massif_products,
     list_root_catalogs,
     list_totem_ballasts,
@@ -199,6 +201,15 @@ def portal_massif_manilles(db: Session = Depends(get_db)) -> MassifManillesRespo
     """Manilles du catalogue [Massif/Accessoire], pour matching par « Manille Type »."""
     try:
         return list_massif_manilles(db)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/massif/palette", response_model=MassifPaletteResponse)
+def portal_massif_palette(db: Session = Depends(get_db)) -> MassifPaletteResponse:
+    """Produit Palette du catalogue [Massif/Accessoire] (qty dérivée des massifs)."""
+    try:
+        return get_massif_palette(db)
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
 

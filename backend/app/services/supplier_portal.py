@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models import Address
 from app.repositories import product_price_repo
 from app.repositories import supplier_portal_repo as repo
 from app.schemas.supplier_portal import (
@@ -84,6 +86,11 @@ def _product_out(db: Session, p, primary_catalog_id: int | None = None) -> Produ
             linked_catalogs.append(
                 _catalog_out(c, breadcrumb=repo.get_breadcrumb(db, c))
             )
+    address_label = None
+    if p.address_id:
+        addr = db.get(Address, p.address_id)
+        if addr is not None:
+            address_label = addr.label or addr.type
     return ProductOut(
         id=p.id,
         admin_sku=p.admin_sku,
@@ -95,6 +102,8 @@ def _product_out(db: Session, p, primary_catalog_id: int | None = None) -> Produ
         price=price,
         currency=currency,
         is_active=p.is_active,
+        address_id=p.address_id,
+        address_label=address_label,
         mandatory_attributes=mandatory,
     )
 
@@ -290,12 +299,31 @@ def get_product(db: Session, session: PortalSession, product_id: int) -> Product
     return _product_out(db, p)
 
 
+def _validate_product_address(
+    db: Session, company_id: str, address_id: int | None
+) -> None:
+    if address_id is None:
+        return
+    addr = db.scalar(
+        select(Address).where(
+            Address.id == address_id,
+            Address.company_tva_intra_com == company_id,
+        )
+    )
+    if addr is None:
+        raise PortalError(
+            "invalid_address",
+            "Adresse introuvable pour cette société.",
+        )
+
+
 def create_product(db: Session, data: ProductWrite) -> ProductOut:
     ctx = _resolve_context(db, data.session)
     catalog_ids = [data.primary_catalog_id, *data.additional_catalog_ids]
     catalog_ids = list(dict.fromkeys(catalog_ids))
     _validate_catalogs_exist(db, catalog_ids)
     _validate_mandatory_attributes(db, catalog_ids, data.mandatory_attributes)
+    _validate_product_address(db, ctx.company_id, data.address_id)
     p = repo.create_product(db, ctx.company_id, data)
     db.commit()
     db.refresh(p)
@@ -313,6 +341,7 @@ def update_product(
     catalog_ids = list(dict.fromkeys(catalog_ids))
     _validate_catalogs_exist(db, catalog_ids)
     _validate_mandatory_attributes(db, catalog_ids, data.mandatory_attributes)
+    _validate_product_address(db, ctx.company_id, data.address_id)
     p = repo.update_product(db, p, data)
     db.commit()
     db.refresh(p)
