@@ -20,6 +20,10 @@ class Product(Base):
         ForeignKey("companies.tva_intra_com"),
         nullable=False,
     )
+    address_id: Mapped[int | None] = mapped_column(
+        ForeignKey("addresses.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     product_name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -30,6 +34,9 @@ class Product(Base):
     )
 
     company: Mapped["Company"] = relationship("Company", back_populates="products")
+    origin_address: Mapped["Address | None"] = relationship(
+        "Address", foreign_keys=[address_id]
+    )
     catalog_products: Mapped[list["CatalogProduct"]] = relationship(
         "CatalogProduct", back_populates="product", cascade="all, delete-orphan"
     )

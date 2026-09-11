@@ -18,6 +18,7 @@ class Address(Base):
         nullable=False,
     )
     type: Mapped[str] = mapped_column(String(32), nullable=False)  # headquarter | delivery | production
+    label: Mapped[str | None] = mapped_column(String(120), nullable=True)
     street: Mapped[str | None] = mapped_column(String(255))
     city: Mapped[str | None] = mapped_column(String(120))
     zip_code: Mapped[str | None] = mapped_column(String(20))
@@ -36,3 +37,8 @@ class Address(Base):
     )
 
     company: Mapped["Company"] = relationship("Company", back_populates="addresses")
+    catalog_links: Mapped[list["AddressCatalog"]] = relationship(
+        "AddressCatalog",
+        back_populates="address",
+        cascade="all, delete-orphan",
+    )

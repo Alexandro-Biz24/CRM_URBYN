@@ -1,7 +1,7 @@
 """Mapping produits Totem (DB / panier) → libellés d'en-tête Google Sheets (ligne B21:P21).
 
 Seuls les totems listés dans la sheet sont concernés :
-80, 120, 160, 200 (= Caisson Bois),
+80, 120, 160, 200 (= Caisson Bois / Arty),
 SIGN-IZ, biface, SIGN-IZ 4 faces,
 LIZ-60-800, LIZ-60-1000, LIZ-60-1000B, LIZ-90-800, LIZ-90-1000,
 LIZ-Flèche - 1280, LIZ-30
@@ -36,6 +36,11 @@ SKU_TO_SHEET_HEADER: dict[str, str] = {
     "TOT-CB-120": "120",
     "TOT-CB-160": "160",
     "TOT-CB-200": "200",
+    # Arty = même calcul lests que Caisson Bois
+    "TOT-ART-80": "80",
+    "TOT-ART-120": "120",
+    "TOT-ART-160": "160",
+    "TOT-ART-200": "200",
     # Sign-IZ biface (réf. connue en DB)
     "TOT-SIGN-2F": "SIGN-IZ",
     # LIZ — SKUs connus en CSV / DB
@@ -125,8 +130,12 @@ def resolve_sheet_totem_header(
     m = re.search(r"caisson\s*bois\s*(\d{2,3})\b", n)
     if m and m.group(1) in {"80", "120", "160", "200"}:
         return m.group(1)
-    # panier legacy format "80" + type caisson
-    if re.fullmatch(r"80|120|160|200", _norm(fmt)) and "caisson" in n:
+    # Arty = même colonnes lests que Caisson Bois
+    m = re.search(r"arty\s*(\d{2,3})\b", n)
+    if m and m.group(1) in {"80", "120", "160", "200"}:
+        return m.group(1)
+    # panier legacy format "80" + type caisson / arty
+    if re.fullmatch(r"80|120|160|200", _norm(fmt)) and ("caisson" in n or "arty" in n):
         return fmt.strip()
 
     # Sign-IZ

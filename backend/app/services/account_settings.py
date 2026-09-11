@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
 from app.core.security import verify_password
-from app.models import Address, Company, CompanyUser, User, UserProfile
+from app.models import Address, AddressCatalog, Catalog, Company, CompanyUser, User, UserProfile
 from app.repositories import auth_repo, supplier_portal_repo as portal_repo
 from app.schemas.client_orders import (
+    AccountAddressCatalogsUpdate,
     AccountAddressUpdate,
     AccountAddressWrite,
     AccountEmailChangeConfirm,
@@ -43,6 +44,24 @@ def _company_for_user(db: Session, user_id: int) -> tuple[str, str] | None:
     return portal_repo.get_company_for_user(db, user_id)
 
 
+
+def _address_catalog_payloads(
+    db: Session, address_ids: list[int]
+) -> dict[int, list[dict]]:
+    if not address_ids:
+        return {}
+    rows = db.execute(
+        select(AddressCatalog.address_id, Catalog.id, Catalog.name)
+        .join(Catalog, Catalog.id == AddressCatalog.catalog_id)
+        .where(AddressCatalog.address_id.in_(address_ids))
+        .order_by(Catalog.name)
+    ).all()
+    out: dict[int, list[dict]] = {aid: [] for aid in address_ids}
+    for address_id, catalog_id, catalog_name in rows:
+        out.setdefault(address_id, []).append({"id": catalog_id, "name": catalog_name})
+    return out
+
+
 def get_account_profile(db: Session, session: PortalSession) -> AccountProfileOut:
     user = _require_user(db, session)
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user.id))
@@ -57,16 +76,20 @@ def get_account_profile(db: Session, session: PortalSession) -> AccountProfileOu
             .where(Address.company_tva_intra_com == company_tva)
             .order_by(Address.is_primary.desc(), Address.id)
         ).all()
+        catalog_map = _address_catalog_payloads(db, [a.id for a in rows])
         addresses = [
             {
                 "id": a.id,
                 "type": a.type,
+                "label": a.label or a.type,
                 "street": a.street,
                 "city": a.city,
                 "zip_code": a.zip_code,
                 "state": a.state,
                 "country_code": a.country_code,
                 "is_primary": a.is_primary,
+                "catalogs": catalog_map.get(a.id, []),
+                "catalog_ids": [c["id"] for c in catalog_map.get(a.id, [])],
             }
             for a in rows
         ]
@@ -221,6 +244,7 @@ def add_address(db: Session, payload: AccountAddressWrite) -> AccountProfileOut:
     addr = Address(
         company_tva_intra_com=company_tva,
         type=(payload.type or "delivery").strip()[:32],
+        label=(payload.label or payload.type or "Adresse").strip()[:120] or None,
         street=payload.street,
         city=payload.city,
         zip_code=payload.zip_code,
@@ -254,6 +278,10 @@ def update_address(db: Session, payload: AccountAddressUpdate) -> AccountProfile
             .values(is_primary=False)
         )
     addr.type = (payload.type or addr.type).strip()[:32]
+    if payload.label is not None:
+        addr.label = payload.label.strip()[:120] or None
+    elif not addr.label:
+        addr.label = addr.type
     addr.street = payload.street
     addr.city = payload.city
     addr.zip_code = payload.zip_code
@@ -284,3 +312,59 @@ def delete_address(
     db.delete(addr)
     db.commit()
     return get_account_profile(db, session)
+
+def set_address_catalogs(
+    db: Session, payload: AccountAddressCatalogsUpdate
+) -> AccountProfileOut:
+    """Associe des catalogues à une adresse labellisée du fournisseur.
+
+    Héritage : un catalogue parent couvre aussi ses sous-catalogues à la résolution
+    d'origine produit. Un catalogue ne peut être lié qu'à une seule adresse
+    de la société (les conflits sont retirés automatiquement).
+    """
+    user = _require_user(db, payload.session)
+    company = _company_for_user(db, user.id)
+    if company is None:
+        raise AccountSettingsError("no_company", "Aucune société rattachée.")
+    company_tva, _ = company
+    addr = db.scalar(
+        select(Address).where(
+            Address.id == payload.address_id,
+            Address.company_tva_intra_com == company_tva,
+        )
+    )
+    if addr is None:
+        raise AccountSettingsError("not_found", "Adresse introuvable.")
+
+    catalog_ids = sorted({int(cid) for cid in payload.catalog_ids if cid and cid > 0})
+    if catalog_ids:
+        found = set(
+            db.scalars(select(Catalog.id).where(Catalog.id.in_(catalog_ids))).all()
+        )
+        missing = [cid for cid in catalog_ids if cid not in found]
+        if missing:
+            raise AccountSettingsError(
+                "catalog_not_found",
+                f"Catalogue(s) introuvable(s) : {', '.join(map(str, missing))}.",
+            )
+        other_addr_ids = list(
+            db.scalars(
+                select(Address.id).where(
+                    Address.company_tva_intra_com == company_tva,
+                    Address.id != addr.id,
+                )
+            ).all()
+        )
+        if other_addr_ids:
+            db.execute(
+                delete(AddressCatalog).where(
+                    AddressCatalog.address_id.in_(other_addr_ids),
+                    AddressCatalog.catalog_id.in_(catalog_ids),
+                )
+            )
+
+    db.execute(delete(AddressCatalog).where(AddressCatalog.address_id == addr.id))
+    for cid in catalog_ids:
+        db.add(AddressCatalog(address_id=addr.id, catalog_id=cid))
+    db.commit()
+    return get_account_profile(db, payload.session)

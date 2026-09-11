@@ -181,6 +181,7 @@ class AccountEmailChangeConfirm(BaseModel):
 class AccountAddressWrite(BaseModel):
     session: PortalSession
     type: str = "delivery"
+    label: str | None = None
     street: str | None = None
     city: str | None = None
     zip_code: str | None = None
@@ -191,6 +192,12 @@ class AccountAddressWrite(BaseModel):
 
 class AccountAddressUpdate(AccountAddressWrite):
     address_id: int
+
+
+class AccountAddressCatalogsUpdate(BaseModel):
+    session: PortalSession
+    address_id: int
+    catalog_ids: list[int] = Field(default_factory=list)
 
 
 class MessageOut(BaseModel):
