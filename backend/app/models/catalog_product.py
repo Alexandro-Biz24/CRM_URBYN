@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -10,6 +10,7 @@ class CatalogProduct(Base):
     """Association produit ↔ catalogue (N–N)."""
 
     __tablename__ = "catalog_products"
+    __table_args__ = (Index("ix_catalog_products_product_id", "product_id"),)
 
     catalog_id: Mapped[int] = mapped_column(
         ForeignKey("catalogs.id", ondelete="CASCADE"),
