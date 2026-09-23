@@ -75,9 +75,10 @@ class ProductAttributeOut(BaseModel):
     value: str | None
 
 
-# ── Massif (racine « Massif Type ») ───────────────────────────────────────────
+# ── Massif (racine « Massif » → Acquisition|Aquisition|Location → feuilles) ──
 
-MASSIF_ROOT_DEFAULT = "Massif Type"
+MASSIF_ROOT_DEFAULT = "Massif"
+MASSIF_OFFER_DEFAULT = "Acquisition"
 
 
 class MassifLeafCatalogOut(BaseModel):
@@ -91,6 +92,9 @@ class MassifLeafCatalogOut(BaseModel):
 class MassifLeafCatalogsResponse(BaseModel):
     root_id: int
     root_name: str
+    offer: str = MASSIF_OFFER_DEFAULT
+    offer_catalog_id: int | None = None
+    offer_catalog_name: str | None = None
     count: int
     catalogs: list[MassifLeafCatalogOut] = Field(default_factory=list)
 
@@ -105,6 +109,9 @@ class MassifWeightBandOut(BaseModel):
 class MassifWeightBandsResponse(BaseModel):
     root_id: int
     root_name: str
+    offer: str = MASSIF_OFFER_DEFAULT
+    offer_catalog_id: int | None = None
+    offer_catalog_name: str | None = None
     bands: list[MassifWeightBandOut] = Field(default_factory=list)
 
 
@@ -112,7 +119,7 @@ class MassifProductsRequest(BaseModel):
     catalog_id: int = Field(
         ...,
         ge=1,
-        description="Catalogue feuille sous « Massif Type »",
+        description="Catalogue feuille sous Massif/{Acquisition|Location}",
     )
     poids: float | None = Field(
         default=None,

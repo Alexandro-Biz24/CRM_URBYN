@@ -12,6 +12,7 @@ from app.repositories import client_portal_repo as buyer_repo
 from app.repositories import product_price_repo, supplier_portal_repo as repo
 from app.services import buyer_shipping
 from app.schemas.client_portal import (
+    MASSIF_OFFER_DEFAULT,
     MASSIF_ROOT_DEFAULT,
     TOTEM_ROOT_DEFAULT,
     BuyerCatalogNavItem,
@@ -58,6 +59,11 @@ class ClientPortalError(Exception):
         self.code = code
         self.message = message
         super().__init__(message)
+
+
+# Origine livraison par défaut si aucune adresse catalogue / produit.
+FALLBACK_ORIGIN_ZIP = "75015"
+FALLBACK_ORIGIN_CITY = "Paris"
 
 
 def _require_client_session(db: Session, session: PortalSession) -> PortalContext:
@@ -705,31 +711,50 @@ def search_products_by_weight(
 
 
 def _resolve_massif_root(db: Session, root_name: str):
+    """Racine produits massif : « Massif » (nouveau), fallback « Massif Type » (legacy)."""
     root = buyer_repo.find_active_root_catalog_by_name(db, root_name)
     if root is not None:
         return root
     aliases = (
+        "Massif",
         "Massif_Type",
         "Massif Type",
         root_name.replace(" ", "_"),
         root_name.replace("_", " "),
     )
+    seen = {_norm_offer(root_name)}
     for alias in aliases:
-        if alias == root_name:
+        if _norm_offer(alias) in seen:
             continue
+        seen.add(_norm_offer(alias))
         root = buyer_repo.find_active_root_catalog_by_name(db, alias)
         if root is not None:
             return root
     return None
 
 
-def list_massif_leaf_catalogs(
+def _find_named_child(db: Session, parent_id: int, *names: str):
+    """Enfant actif dont le nom matche (casse / _ / espaces ignorés)."""
+    needles = {_norm_offer(n) for n in names if (n or "").strip()}
+    if not needles:
+        return None
+    for child in buyer_repo.list_active_catalog_children(db, parent_id):
+        if _norm_offer(child.name or "") in needles:
+            return child
+    return None
+
+
+def _resolve_massif_scope(
     db: Session,
-    root_name: str = MASSIF_ROOT_DEFAULT,
-    *,
-    poids_min: float | None = None,
-    poids_max: float | None = None,
-) -> MassifLeafCatalogsResponse:
+    root_name: str,
+    offer: str = MASSIF_OFFER_DEFAULT,
+):
+    """
+    Scope sélection produits massif UNIQUEMENT :
+      Massif / {Aquisition|Acquisition|Location} / Massif_Type / …
+
+    Legacy : racine « Massif Type » sans nœud offre → scope = racine.
+    """
     root = _resolve_massif_root(db, root_name)
     if root is None:
         raise ClientPortalError(
@@ -737,13 +762,55 @@ def list_massif_leaf_catalogs(
             f"Catalogue racine « {root_name} » introuvable.",
         )
 
+    offer_node = _find_child_by_offer(db, root.id, offer)
+    if offer_node is not None:
+        type_node = _find_named_child(
+            db,
+            offer_node.id,
+            "Massif_Type",
+            "Massif Type",
+            "MassifType",
+        )
+        if type_node is None:
+            raise ClientPortalError(
+                "not_found",
+                f"Catalogue « Massif_Type » introuvable sous "
+                f"« {root.name or root_name}/{offer_node.name or offer} ».",
+            )
+        return root, offer_node, type_node
+
+    # Des nœuds offre existent mais pas celui demandé → erreur claire
+    children = buyer_repo.list_active_catalog_children(db, root.id)
+    offer_names = {_norm_offer(c.name or "") for c in children}
+    known_offers = _offer_name_aliases("acquisition") | _offer_name_aliases("location")
+    if offer_names & known_offers:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue offre « {offer} » introuvable sous « {root.name or root_name} » "
+            f"(attendu : Acquisition/Aquisition ou Location).",
+        )
+
+    # Legacy sans nœud offre (ancienne racine Massif Type)
+    return root, None, root
+
+
+def list_massif_leaf_catalogs(
+    db: Session,
+    root_name: str = MASSIF_ROOT_DEFAULT,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
+    poids_min: float | None = None,
+    poids_max: float | None = None,
+) -> MassifLeafCatalogsResponse:
+    root, offer_node, scope = _resolve_massif_scope(db, root_name, offer)
+
     if poids_min is not None and poids_max is not None and poids_min > poids_max:
         raise ClientPortalError(
             "invalid_range",
             "poids_min doit être inférieur ou égal à poids_max.",
         )
 
-    leaves = buyer_repo.collect_leaf_catalogs(db, root.id)
+    leaves = buyer_repo.collect_leaf_catalogs(db, scope.id)
     catalogs: list[MassifLeafCatalogOut] = []
     for leaf in leaves:
         if poids_min is not None and poids_max is not None:
@@ -762,6 +829,9 @@ def list_massif_leaf_catalogs(
     return MassifLeafCatalogsResponse(
         root_id=root.id,
         root_name=root.name or root_name,
+        offer=offer,
+        offer_catalog_id=offer_node.id if offer_node is not None else None,
+        offer_catalog_name=offer_node.name if offer_node is not None else None,
         count=len(catalogs),
         catalogs=catalogs,
     )
@@ -796,15 +866,12 @@ def _leaf_has_products_in_weight_range(
 def list_massif_available_weight_bands(
     db: Session,
     root_name: str = MASSIF_ROOT_DEFAULT,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
     bands: list[tuple[float, float]] | None = None,
 ) -> MassifWeightBandsResponse:
-    """Indique quelles fourchettes de poids ont au moins un produit sous Massif Type."""
-    root = _resolve_massif_root(db, root_name)
-    if root is None:
-        raise ClientPortalError(
-            "not_found",
-            f"Catalogue racine « {root_name} » introuvable.",
-        )
+    """Indique quelles fourchettes de poids ont au moins un produit sous Massif/{offer}/Massif_Type."""
+    root, offer_node, scope = _resolve_massif_scope(db, root_name, offer)
 
     default_bands = bands or [
         (0.0, 299.0),
@@ -813,7 +880,7 @@ def list_massif_available_weight_bands(
         (1501.0, 2500.0),
         (2501.0, 99999.0),
     ]
-    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, root.id)
+    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, scope.id)
     rows = buyer_repo.get_product_catalog_links_in_catalogs(db, leaf_ids)
     product_ids: list[int] = []
     seen: set[int] = set()
@@ -844,6 +911,9 @@ def list_massif_available_weight_bands(
     return MassifWeightBandsResponse(
         root_id=root.id,
         root_name=root.name or root_name,
+        offer=offer,
+        offer_catalog_id=offer_node.id if offer_node is not None else None,
+        offer_catalog_name=offer_node.name if offer_node is not None else None,
         bands=out,
     )
 
@@ -868,21 +938,19 @@ def list_massif_products(
     db: Session,
     payload: MassifProductsRequest,
     root_name: str = MASSIF_ROOT_DEFAULT,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
 ) -> MassifProductsResponse:
     poids_min, poids_max = _resolve_massif_weight_range(payload)
 
-    root = _resolve_massif_root(db, root_name)
-    if root is None:
-        raise ClientPortalError(
-            "not_found",
-            f"Catalogue racine « {root_name} » introuvable.",
-        )
+    root, _offer_node, scope = _resolve_massif_scope(db, root_name, offer)
 
-    leaf_ids = set(buyer_repo.collect_leaf_catalog_ids(db, root.id))
+    leaf_ids = set(buyer_repo.collect_leaf_catalog_ids(db, scope.id))
     if payload.catalog_id not in leaf_ids:
         raise ClientPortalError(
             "invalid_catalog",
-            f"Le catalogue choisi n'est pas une feuille sous « {root_name} ».",
+            f"Le catalogue choisi n'est pas une feuille sous "
+            f"« {root.name or root_name}/{offer}/Massif_Type ».",
         )
 
     catalog = repo.get_catalog(db, payload.catalog_id)
@@ -964,27 +1032,72 @@ def _norm_manille_type(value: str | None) -> str:
     return " ".join((value or "").strip().lower().replace(" ", "").split())
 
 
-def _resolve_massif_accessoire_catalog(db: Session):
-    """Feuille « Accessoire » sous la racine « Massif » ([Massif/Accessoire])."""
+def _resolve_massif_manilles_catalog(
+    db: Session,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
+):
+    """
+    Catalogue manilles :
+      Massif / {Acquisition|Aquisition|Location} / Massif_Moyen_de_Levage / Manille
+    Fallback legacy : racine Massif_Moyen_de_Levage (+ enfant Manille si présent).
+    """
     root = buyer_repo.find_active_root_catalog_by_name(db, "Massif")
-    if root is None:
-        return None, None
-    for child in buyer_repo.list_active_catalog_children(db, root.id):
-        if _norm_offer(child.name or "") == "accessoire":
-            return root, child
-    return root, None
+    if root is not None:
+        offer_node = _find_child_by_offer(db, root.id, offer)
+        if offer_node is None and _norm_offer(offer) == "location":
+            offer_node = _find_child_by_offer(db, root.id, "Acquisition")
+        if offer_node is not None:
+            levage = _find_named_child(
+                db,
+                offer_node.id,
+                "Massif_Moyen_de_Levage",
+                "Massif Moyen de Levage",
+                "Massif_Moyen_de_levage",
+                "Moyen_de_Levage",
+            )
+            if levage is not None:
+                manille_node = _find_named_child(
+                    db,
+                    levage.id,
+                    "Manille",
+                    "Manilles",
+                )
+                if manille_node is not None:
+                    return root, offer_node, levage, manille_node
+                # Pas encore de sous-feuille Manille → produits directement sous levage
+                return root, offer_node, levage, levage
+
+    legacy = buyer_repo.find_active_root_catalog_by_name(db, "Massif_Moyen_de_Levage")
+    if legacy is None:
+        legacy = buyer_repo.find_active_root_catalog_by_name(
+            db, "Massif Moyen de Levage"
+        )
+    if legacy is not None:
+        manille_node = _find_named_child(db, legacy.id, "Manille", "Manilles")
+        return legacy, None, legacy, manille_node or legacy
+    return None, None, None, None
 
 
-def list_massif_manilles(db: Session) -> MassifManillesResponse:
-    """Manilles du catalogue [Massif/Accessoire], indexées par attribut « Manille Type »."""
-    root, accessoire = _resolve_massif_accessoire_catalog(db)
-    if root is None or accessoire is None:
+def list_massif_manilles(
+    db: Session,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
+) -> MassifManillesResponse:
+    """Manilles sous Massif/{offer}/Massif_Moyen_de_Levage/Manille."""
+    root, offer_node, levage, manille_cat = _resolve_massif_manilles_catalog(
+        db, offer=offer
+    )
+    if root is None or manille_cat is None:
         raise ClientPortalError(
             "not_found",
-            "Catalogue « Massif / Accessoire » introuvable.",
+            f"Catalogue « Massif / {offer} / Massif_Moyen_de_Levage / Manille » introuvable.",
         )
 
-    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [accessoire.id])
+    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, manille_cat.id)
+    if not leaf_ids:
+        leaf_ids = [manille_cat.id]
+    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, leaf_ids)
     products = []
     companies = {}
     seen: set[int] = set()
@@ -999,7 +1112,6 @@ def list_massif_manilles(db: Session) -> MassifManillesResponse:
     manilles: list[MassifManilleOut] = []
     for product in products:
         attrs = _attr_map_from_free(free.get(product.id, []))
-        # merge mandatory names too (rare but cheap)
         for val, defn in mandatory.get(product.id, []):
             name = (defn.attribute_name or "").strip()
             value = (val.value or "").strip()
@@ -1017,6 +1129,8 @@ def list_massif_manilles(db: Session) -> MassifManillesResponse:
         if not manille_type:
             continue
         name_cf = (product.product_name or "").casefold()
+        # Uniquement les vrais produits manille (évite les massifs liés par erreur
+        # dans le même catalogue via l'attribut « Manille Type »).
         if "manille" not in name_cf:
             continue
         latest = prices.get(product.id)
@@ -1041,34 +1155,102 @@ def list_massif_manilles(db: Session) -> MassifManillesResponse:
     manilles.sort(
         key=lambda m: (_norm_manille_type(m.manille_type), m.product_name.casefold())
     )
+    path = [root.name or "Massif"]
+    if offer_node is not None:
+        path.append(offer_node.name or offer)
+    if levage is not None and levage.id != manille_cat.id:
+        path.append(levage.name or "Massif_Moyen_de_Levage")
+    path.append(manille_cat.name or "Manille")
     return MassifManillesResponse(
-        catalog_id=accessoire.id,
-        catalog_path=[root.name or "Massif", accessoire.name or "Accessoire"],
+        catalog_id=manille_cat.id,
+        catalog_path=path,
         count=len(manilles),
         manilles=manilles,
     )
 
 
-def get_massif_palette(db: Session) -> MassifPaletteResponse:
-    """Produit « Palette » du catalogue [Massif/Accessoire]."""
-    root, accessoire = _resolve_massif_accessoire_catalog(db)
-    if root is None or accessoire is None:
+def get_massif_palette(
+    db: Session,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
+) -> MassifPaletteResponse:
+    """Produit « Palette » (+ cales bois) sous Massif/{offer}/Accessoire."""
+    root = buyer_repo.find_active_root_catalog_by_name(db, "Massif")
+    if root is None:
         raise ClientPortalError(
             "not_found",
-            "Catalogue « Massif / Accessoire » introuvable.",
+            "Catalogue racine « Massif » introuvable.",
         )
 
-    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [accessoire.id])
+    offer_node = _find_child_by_offer(db, root.id, offer)
+    if offer_node is None and _norm_offer(offer) == "location":
+        # Accessoires / manilles souvent seulement sous Acquisition pour l'instant
+        offer_node = _find_child_by_offer(db, root.id, "Acquisition")
+    if offer_node is None:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue offre « {offer} » introuvable sous Massif.",
+        )
+
+    accessoire = _find_named_child(
+        db, offer_node.id, "Accessoire", "Accessoires", "Massif_Accessoire"
+    )
+    if accessoire is None:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue « Massif / {offer_node.name or offer} / Accessoire » introuvable.",
+        )
+
+    path = [
+        root.name or "Massif",
+        offer_node.name or offer,
+        accessoire.name or "Accessoire",
+    ]
+
+    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, accessoire.id)
+    if not leaf_ids:
+        leaf_ids = [accessoire.id]
+
+    # Sous-catalogue « Palette » s'il existe (Accessoire/Palette)
+    palette_leaf = _find_named_child(db, accessoire.id, "Palette", "Palettes")
+    search_ids = (
+        buyer_repo.collect_leaf_catalog_ids(db, palette_leaf.id) or [palette_leaf.id]
+        if palette_leaf is not None
+        else leaf_ids
+    )
+
+    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, search_ids)
+    if not rows and palette_leaf is not None:
+        rows = buyer_repo.get_product_catalog_links_in_catalogs(db, leaf_ids)
+
+    def _looks_like_palette(product_name: str | None, sku: str | None) -> bool:
+        name = (product_name or "").casefold().strip()
+        sku_cf = (sku or "").casefold().strip()
+        compact = "".join(ch for ch in name if ch.isalnum())
+        if not name and not sku_cf:
+            return False
+        # Exclure cales bois
+        if "cale" in name and "palett" not in name:
+            return False
+        # « Palette » / typo DB « Pallette »
+        if compact in {"palette", "pallette"} or name in {"palette", "pallette"}:
+            return True
+        if name.startswith("palette") or name.startswith("pallette"):
+            return True
+        if "palette" in name or "pallette" in name:
+            return True
+        if "palette" in sku_cf or "pallette" in sku_cf or sku_cf.startswith("pal"):
+            return True
+        return False
+
     palette_out: MassifPaletteOut | None = None
+    scanned: list[str] = []
     for product, company, _cat in rows:
-        name_cf = (product.product_name or "").casefold().strip()
-        if name_cf != "palette" and "palette" not in name_cf:
-            continue
-        # Éviter les faux positifs type « transpalette » dans une description produit
-        if name_cf != "palette" and not name_cf.startswith("palette"):
+        scanned.append(product.product_name or product.admin_sku or f"#{product.id}")
+        if not _looks_like_palette(product.product_name, product.admin_sku):
             continue
         latest = product_price_repo.get_latest_price(db, product.id)
-        palette_out = MassifPaletteOut(
+        candidate = MassifPaletteOut(
             product_id=product.id,
             product_name=product.product_name,
             admin_sku=product.admin_sku,
@@ -1080,12 +1262,40 @@ def get_massif_palette(db: Session) -> MassifPaletteResponse:
             company_tva=company.tva_intra_com if company else None,
             poids=_product_weight_kg(db, product.id),
         )
-        if name_cf == "palette":
+        name_cf = (product.product_name or "").casefold().strip()
+        palette_out = candidate
+        if name_cf == "palette" or name_cf.startswith("palette "):
             break
 
+    if palette_out is None and scanned:
+        # Dernier recours : produit unique non-cale dans Accessoire
+        non_cale = [
+            (p, c)
+            for p, c, _cat in rows
+            if "cale" not in (p.product_name or "").casefold()
+        ]
+        if len(non_cale) == 1:
+            product, company = non_cale[0]
+            latest = product_price_repo.get_latest_price(db, product.id)
+            palette_out = MassifPaletteOut(
+                product_id=product.id,
+                product_name=product.product_name,
+                admin_sku=product.admin_sku,
+                client_sku=product.client_sku,
+                description=_product_description(db, product),
+                price=float(latest.price) if latest else 0.0,
+                currency=latest.currency if latest else "EUR",
+                company_name=company.company_name if company else None,
+                company_tva=company.tva_intra_com if company else None,
+                poids=_product_weight_kg(db, product.id),
+            )
+
+    if palette_leaf is not None:
+        path.append(palette_leaf.name or "Palette")
+
     return MassifPaletteResponse(
-        catalog_id=accessoire.id,
-        catalog_path=[root.name or "Massif", accessoire.name or "Accessoire"],
+        catalog_id=(palette_leaf.id if palette_leaf is not None else accessoire.id),
+        catalog_path=path,
         palette=palette_out,
     )
 
@@ -1302,10 +1512,22 @@ def _norm_offer(offer: str) -> str:
     return " ".join((offer or "").strip().replace("_", " ").split()).casefold()
 
 
-def _find_child_by_offer(db: Session, parent_id: int, offer: str):
+def _offer_name_aliases(offer: str) -> set[str]:
+    """Normalise Acquisition ↔ Aquisition (typo DB) ↔ achat."""
     needle = _norm_offer(offer)
+    if needle in {"acquisition", "aquisition", "achat"}:
+        return {"acquisition", "aquisition", "achat"}
+    if needle == "location":
+        return {"location"}
+    return {needle} if needle else set()
+
+
+def _find_child_by_offer(db: Session, parent_id: int, offer: str):
+    needles = _offer_name_aliases(offer)
+    if not needles:
+        return None
     for child in buyer_repo.list_active_catalog_children(db, parent_id):
-        if _norm_offer(child.name or "") == needle:
+        if _norm_offer(child.name or "") in needles:
             return child
     return None
 
