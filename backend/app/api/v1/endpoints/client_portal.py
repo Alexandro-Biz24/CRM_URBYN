@@ -15,6 +15,7 @@ from app.schemas.client_portal import (
     CartSnapshotPut,
     MassifLeafCatalogsResponse,
     MassifManillesResponse,
+    MassifPaletteResponse,
     MassifProductsRequest,
     MassifProductsResponse,
     MassifWeightBandsResponse,
@@ -46,6 +47,7 @@ from app.services.client_portal import (
     list_massif_available_weight_bands,
     list_massif_leaf_catalogs,
     list_massif_manilles,
+    get_massif_palette,
     list_massif_products,
     list_root_catalogs,
     list_totem_ballasts,
@@ -152,16 +154,18 @@ def portal_search_products_by_weight(
 
 @router.get("/massif/leaf-catalogs", response_model=MassifLeafCatalogsResponse)
 def portal_massif_leaf_catalogs(
-    root_name: str = Query("Massif Type", min_length=1),
+    root_name: str = Query("Massif", min_length=1),
+    offer: str = Query("Acquisition", min_length=1),
     poids_min: float | None = Query(None, ge=0),
     poids_max: float | None = Query(None, ge=0),
     db: Session = Depends(get_db),
 ) -> MassifLeafCatalogsResponse:
-    """Catalogues feuilles sous Massif Type, optionnellement filtrés par fourchette de poids."""
+    """Catalogues feuilles sous Massif/{Acquisition|Location}, filtrables par poids."""
     try:
         return list_massif_leaf_catalogs(
             db,
             root_name=root_name,
+            offer=offer,
             poids_min=poids_min,
             poids_max=poids_max,
         )
@@ -171,12 +175,15 @@ def portal_massif_leaf_catalogs(
 
 @router.get("/massif/weight-bands", response_model=MassifWeightBandsResponse)
 def portal_massif_weight_bands(
-    root_name: str = Query("Massif Type", min_length=1),
+    root_name: str = Query("Massif", min_length=1),
+    offer: str = Query("Acquisition", min_length=1),
     db: Session = Depends(get_db),
 ) -> MassifWeightBandsResponse:
-    """Fourchettes de poids disponibles (au moins 1 produit) sous Massif Type."""
+    """Fourchettes de poids disponibles sous Massif/{Acquisition|Location}."""
     try:
-        return list_massif_available_weight_bands(db, root_name=root_name)
+        return list_massif_available_weight_bands(
+            db, root_name=root_name, offer=offer
+        )
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
 
@@ -184,21 +191,39 @@ def portal_massif_weight_bands(
 @router.post("/massif/products", response_model=MassifProductsResponse)
 def portal_massif_products(
     payload: MassifProductsRequest,
-    root_name: str = Query("Massif Type", min_length=1),
+    root_name: str = Query("Massif", min_length=1),
+    offer: str = Query("Acquisition", min_length=1),
     db: Session = Depends(get_db),
 ) -> MassifProductsResponse:
-    """Produits d'un catalogue feuille Massif, filtrés par poids exact ou fourchette + attributs."""
+    """Produits d'une feuille Massif (sous l'offre), filtrés par poids."""
     try:
-        return list_massif_products(db, payload, root_name=root_name)
+        return list_massif_products(
+            db, payload, root_name=root_name, offer=offer
+        )
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
 
 
 @router.get("/massif/manilles", response_model=MassifManillesResponse)
-def portal_massif_manilles(db: Session = Depends(get_db)) -> MassifManillesResponse:
-    """Manilles du catalogue [Massif/Accessoire], pour matching par « Manille Type »."""
+def portal_massif_manilles(
+    offer: str = Query("Acquisition", min_length=1),
+    db: Session = Depends(get_db),
+) -> MassifManillesResponse:
+    """Manilles sous Massif/{offer}/Massif_Moyen_de_Levage/Manille."""
     try:
-        return list_massif_manilles(db)
+        return list_massif_manilles(db, offer=offer)
+    except ClientPortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/massif/palette", response_model=MassifPaletteResponse)
+def portal_massif_palette(
+    offer: str = Query("Acquisition", min_length=1),
+    db: Session = Depends(get_db),
+) -> MassifPaletteResponse:
+    """Produit Palette sous Massif/{offer}/Accessoire."""
+    try:
+        return get_massif_palette(db, offer=offer)
     except ClientPortalError as exc:
         raise _http_error(exc) from exc
 

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_db
 from app.schemas.client_orders import (
+    AccountAddressCatalogsUpdate,
     AccountAddressUpdate,
     AccountAddressWrite,
     AccountEmailChangeConfirm,
@@ -205,5 +206,16 @@ def account_address_delete(
         return account_svc.delete_address(
             db, PortalSession(user_id=user_id, email=email), address_id
         )
+    except AccountSettingsError as exc:
+        raise _client_http(exc) from exc
+
+
+@router.put("/account/addresses/catalogs", response_model=AccountProfileOut)
+def account_address_catalogs(
+    payload: AccountAddressCatalogsUpdate, db: Session = Depends(get_db)
+):
+    """Associe un ou plusieurs catalogues à une adresse labellisée (fournisseur)."""
+    try:
+        return account_svc.set_address_catalogs(db, payload)
     except AccountSettingsError as exc:
         raise _client_http(exc) from exc

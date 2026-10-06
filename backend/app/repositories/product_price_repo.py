@@ -38,3 +38,23 @@ def get_latest_price(
         .limit(1)
     )
     return db.scalar(stmt)
+
+
+def get_latest_prices_for_products(
+    db: Session, product_ids: list[int]
+) -> dict[int, ProductPriceHistory]:
+    """Dernier prix par product_id en une seule requête (PostgreSQL DISTINCT ON)."""
+    ids = sorted({int(pid) for pid in product_ids if pid})
+    if not ids:
+        return {}
+    stmt = (
+        select(ProductPriceHistory)
+        .where(ProductPriceHistory.product_id.in_(ids))
+        .distinct(ProductPriceHistory.product_id)
+        .order_by(
+            ProductPriceHistory.product_id,
+            ProductPriceHistory.recorded_at.desc(),
+            ProductPriceHistory.id.desc(),
+        )
+    )
+    return {row.product_id: row for row in db.scalars(stmt).all()}

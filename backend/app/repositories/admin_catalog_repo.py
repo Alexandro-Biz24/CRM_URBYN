@@ -347,25 +347,37 @@ def find_company_by_name(db: Session, name: str) -> Company | None:
     return None
 
 
-_DEFAULT_URBANIZE_TVA = "FRURBANIZE00001"
-_DEFAULT_URBANIZE_NAME = "Urbanize"
+_DEFAULT_URBANIZE_TVA = "FR73827458779"
+_DEFAULT_URBANIZE_NAME = "URBANIZE"
+_LEGACY_URBANIZE_TVA = "FRURBANIZE00001"
 
 
 def ensure_urbanize_company(db: Session) -> Company:
-    """Société propriétaire par défaut quand Fournisseur CSV est vide."""
-    existing = find_company_by_name(db, _DEFAULT_URBANIZE_NAME)
-    if existing is not None:
-        return existing
+    """Société propriétaire par défaut quand Fournisseur CSV est vide.
+
+    Référence = TVA réelle URBANIZE (SIREN partenaire), pas l'ancienne
+    fiche plateforme FRURBANIZE00001.
+    """
     by_tva = get_company(db, _DEFAULT_URBANIZE_TVA)
     if by_tva is not None:
         return by_tva
+
+    # Ancienne fiche import (si toujours présente et pas encore migrée)
+    legacy = get_company(db, _LEGACY_URBANIZE_TVA)
+    if legacy is not None:
+        return legacy
+
+    existing = find_company_by_name(db, _DEFAULT_URBANIZE_NAME)
+    if existing is not None:
+        return existing
+
     company = Company(
         tva_intra_com=_DEFAULT_URBANIZE_TVA,
         company_name=_DEFAULT_URBANIZE_NAME,
         email="contact@urbanize.site",
         cgv_accepted=True,
         is_verified=True,
-        description="Société plateforme Urbanize (import catalogue).",
+        description="Société URBANIZE (import catalogue / partenaire).",
     )
     db.add(company)
     db.flush()

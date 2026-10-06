@@ -7,6 +7,7 @@ from .user_profile import UserProfile
 from .company import Company
 from .company_user import CompanyUser
 from .address import Address
+from .address_catalog import AddressCatalog
 from .typology import Typologie
 from .company_bank_info import CompanyBankInfo
 from .company_payment_method import CompanyPaymentMethod

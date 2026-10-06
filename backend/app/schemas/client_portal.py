@@ -75,9 +75,10 @@ class ProductAttributeOut(BaseModel):
     value: str | None
 
 
-# ── Massif (racine « Massif Type ») ───────────────────────────────────────────
+# ── Massif (racine « Massif » → Acquisition|Aquisition|Location → feuilles) ──
 
-MASSIF_ROOT_DEFAULT = "Massif Type"
+MASSIF_ROOT_DEFAULT = "Massif"
+MASSIF_OFFER_DEFAULT = "Acquisition"
 
 
 class MassifLeafCatalogOut(BaseModel):
@@ -91,6 +92,9 @@ class MassifLeafCatalogOut(BaseModel):
 class MassifLeafCatalogsResponse(BaseModel):
     root_id: int
     root_name: str
+    offer: str = MASSIF_OFFER_DEFAULT
+    offer_catalog_id: int | None = None
+    offer_catalog_name: str | None = None
     count: int
     catalogs: list[MassifLeafCatalogOut] = Field(default_factory=list)
 
@@ -105,6 +109,9 @@ class MassifWeightBandOut(BaseModel):
 class MassifWeightBandsResponse(BaseModel):
     root_id: int
     root_name: str
+    offer: str = MASSIF_OFFER_DEFAULT
+    offer_catalog_id: int | None = None
+    offer_catalog_name: str | None = None
     bands: list[MassifWeightBandOut] = Field(default_factory=list)
 
 
@@ -112,7 +119,7 @@ class MassifProductsRequest(BaseModel):
     catalog_id: int = Field(
         ...,
         ge=1,
-        description="Catalogue feuille sous « Massif Type »",
+        description="Catalogue feuille sous Massif/{Acquisition|Location}",
     )
     poids: float | None = Field(
         default=None,
@@ -170,6 +177,27 @@ class MassifManillesResponse(BaseModel):
     catalog_path: list[str] = Field(default_factory=list)
     count: int
     manilles: list[MassifManilleOut] = Field(default_factory=list)
+
+
+class MassifPaletteOut(BaseModel):
+    """Produit Palette du catalogue [Massif/Accessoire]."""
+
+    product_id: int
+    product_name: str
+    admin_sku: str
+    client_sku: str | None = None
+    description: str | None = None
+    price: float
+    currency: str = "EUR"
+    company_name: str | None = None
+    company_tva: str | None = None
+    poids: float | None = None
+
+
+class MassifPaletteResponse(BaseModel):
+    catalog_id: int
+    catalog_path: list[str] = Field(default_factory=list)
+    palette: MassifPaletteOut | None = None
 
 
 class TotemBallastOut(BaseModel):
@@ -261,6 +289,9 @@ class TotemProductDetailOut(BaseModel):
     fiche_available: bool = False
     company_name: str | None = None
     company_tva: str | None = None
+    company_zip: str | None = None
+    company_city: str | None = None
+    origin_address_id: int | None = None
 
 
 class TotemWindSheetProductIn(BaseModel):

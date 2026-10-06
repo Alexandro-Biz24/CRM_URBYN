@@ -251,6 +251,35 @@ def list_mandatory_attribute_values(
     return list(db.execute(stmt).all())
 
 
+def list_mandatory_attribute_values_for_products(
+    db: Session, product_ids: list[int]
+) -> dict[int, list[tuple[ProductMandatoryAttributeValue, CatalogAttributeDefinition]]]:
+    """Charge tous les attributs obligatoires pour un lot de produits (anti-N+1)."""
+    ids = sorted({int(pid) for pid in product_ids if pid})
+    if not ids:
+        return {}
+    stmt = (
+        select(ProductMandatoryAttributeValue, CatalogAttributeDefinition)
+        .join(
+            CatalogAttributeDefinition,
+            CatalogAttributeDefinition.id
+            == ProductMandatoryAttributeValue.catalog_attribute_definition_id,
+        )
+        .where(ProductMandatoryAttributeValue.product_id.in_(ids))
+        .order_by(
+            ProductMandatoryAttributeValue.product_id,
+            CatalogAttributeDefinition.catalog_id,
+            CatalogAttributeDefinition.attribute_name,
+        )
+    )
+    out: dict[
+        int, list[tuple[ProductMandatoryAttributeValue, CatalogAttributeDefinition]]
+    ] = {pid: [] for pid in ids}
+    for val, defn in db.execute(stmt).all():
+        out.setdefault(val.product_id, []).append((val, defn))
+    return out
+
+
 def list_products(
     db: Session,
     company_id: str,
@@ -298,6 +327,7 @@ def create_product(db: Session, company_id: str, data: ProductWrite) -> Product:
         client_sku=data.client_sku.strip(),
         product_name=data.product_name.strip(),
         is_active=data.is_active,
+        address_id=data.address_id,
     )
     db.add(product)
     db.flush()
@@ -322,6 +352,7 @@ def update_product(db: Session, product: Product, data: ProductWrite) -> Product
     product.client_sku = data.client_sku.strip()
     product.product_name = data.product_name.strip()
     product.is_active = data.is_active
+    product.address_id = data.address_id
     product.updated_at = datetime.utcnow()
 
     sync_catalog_products(db, product.id, catalog_ids)
@@ -347,6 +378,24 @@ def update_product(db: Session, product: Product, data: ProductWrite) -> Product
 def list_product_attributes(db: Session, product_id: int) -> list[ProductAttribut]:
     stmt = select(ProductAttribut).where(ProductAttribut.product_id == product_id)
     return list(db.scalars(stmt).all())
+
+
+def list_product_attributes_for_products(
+    db: Session, product_ids: list[int]
+) -> dict[int, list[ProductAttribut]]:
+    """Charge tous les attributs libres pour un lot de produits (anti-N+1)."""
+    ids = sorted({int(pid) for pid in product_ids if pid})
+    if not ids:
+        return {}
+    stmt = (
+        select(ProductAttribut)
+        .where(ProductAttribut.product_id.in_(ids))
+        .order_by(ProductAttribut.product_id, ProductAttribut.id)
+    )
+    out: dict[int, list[ProductAttribut]] = {pid: [] for pid in ids}
+    for attr in db.scalars(stmt).all():
+        out.setdefault(attr.product_id, []).append(attr)
+    return out
 
 
 def create_product_attribute(

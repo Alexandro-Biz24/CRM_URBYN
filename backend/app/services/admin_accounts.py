@@ -118,6 +118,7 @@ def get_company(db: Session, tva: str) -> AdminCompanyDetail:
             AdminAddressOut(
                 id=a.id,
                 type=a.type,
+                label=a.label or a.type,
                 street=a.street,
                 city=a.city,
                 zip_code=a.zip_code,

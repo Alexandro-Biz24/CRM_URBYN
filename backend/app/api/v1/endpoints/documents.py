@@ -1,10 +1,12 @@
-"""Fiches techniques totem — mapping clé produit → fichier Google Drive (proxy sécurisé)."""
+"""Fiches techniques totem — mapping clé produit → fichier Google Drive (proxy + cache)."""
 
 from __future__ import annotations
 
 import io
 import json
 import re
+import threading
+import time
 from pathlib import Path
 
 import httpx
@@ -15,17 +17,15 @@ from app.core.config import ROOT, settings
 
 router = APIRouter()
 
-# Clés stables côté front (indépendantes du libellé affiché)
-# Tu remplis les IDs Drive dans FICHE_TECHNIQUE_DRIVE_MAP (env).
-DEFAULT_FICHE_KEYS = (
-    "caisson-bois-80",
-    "caisson-bois-120",
-    "caisson-bois-160",
-    "caisson-bois-200",
-    "sign-iz",
-)
-
 _LOCAL_FICHES_DIR = Path(__file__).resolve().parents[2] / "static" / "fiches"
+
+# Cache process-local (dev + Render single-instance). TTL long : les PDF changent rarement.
+_PDF_CACHE_TTL_S = 6 * 3600
+_TOKEN_SKEW_S = 120
+_cache_lock = threading.Lock()
+_pdf_cache: dict[str, tuple[float, bytes]] = {}  # file_id -> (expires_at, content)
+_cached_token: str | None = None
+_cached_token_expires_at: float = 0.0
 
 
 def _drive_map() -> dict[str, str]:
@@ -50,7 +50,6 @@ def _drive_map() -> dict[str, str]:
                 "message": "FICHE_TECHNIQUE_DRIVE_MAP doit être un objet JSON.",
             },
         )
-    # Clés normalisées en minuscules (match sur nom produit)
     out: dict[str, str] = {}
     for k, v in data.items():
         key = str(k).strip()
@@ -64,8 +63,7 @@ def _resolve_drive_file_id(document_key: str) -> str | None:
     key = document_key.strip()
     if not key:
         return None
-    drive_map = _drive_map()
-    return drive_map.get(key.casefold())
+    return _drive_map().get(key.casefold())
 
 
 def _safe_filename(document_key: str) -> str:
@@ -77,11 +75,28 @@ def _local_pdf_path(document_key: str) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
+def _pdf_cache_get(file_id: str) -> bytes | None:
+    now = time.time()
+    with _cache_lock:
+        hit = _pdf_cache.get(file_id)
+        if hit is None:
+            return None
+        expires_at, content = hit
+        if expires_at < now:
+            _pdf_cache.pop(file_id, None)
+            return None
+        return content
+
+
+def _pdf_cache_set(file_id: str, content: bytes) -> None:
+    with _cache_lock:
+        _pdf_cache[file_id] = (time.time() + _PDF_CACHE_TTL_S, content)
+
+
 def _load_service_account_info() -> dict | None:
     raw = (settings.GOOGLE_SERVICE_ACCOUNT_JSON or "").strip()
     if not raw:
         return None
-    # JSON inline (commence par {) vs chemin fichier
     if not raw.startswith("{"):
         path = Path(raw)
         if not path.is_absolute():
@@ -129,37 +144,15 @@ def _load_service_account_info() -> dict | None:
     return data
 
 
-def _download_drive_public(file_id: str) -> tuple[bytes, str]:
-    """Télécharge un fichier partagé « avec le lien » (sans compte de service)."""
-    url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    with httpx.Client(follow_redirects=True, timeout=60.0) as client:
-        response = client.get(url)
-        if response.status_code >= 400:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail={
-                    "code": "drive_unavailable",
-                    "message": "Impossible de télécharger le PDF depuis Google Drive.",
-                },
-            )
-        content_type = response.headers.get("content-type", "application/pdf")
-        # Google peut renvoyer une page HTML de confirmation pour les gros fichiers
-        if "text/html" in content_type.lower():
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail={
-                    "code": "drive_confirm_required",
-                    "message": (
-                        "Google Drive a bloqué le téléchargement direct. "
-                        "Partage le fichier en lecture « avec le lien », ou configure "
-                        "GOOGLE_SERVICE_ACCOUNT_JSON (mode service_account)."
-                    ),
-                },
-            )
-        return response.content, "application/pdf"
+def _get_service_account_token() -> str:
+    """Access token OAuth réutilisé jusqu'à expiration (évite un refresh Drive à chaque PDF)."""
+    global _cached_token, _cached_token_expires_at
 
+    now = time.time()
+    with _cache_lock:
+        if _cached_token and _cached_token_expires_at - _TOKEN_SKEW_S > now:
+            return _cached_token
 
-def _download_drive_service_account(file_id: str) -> tuple[bytes, str]:
     try:
         from google.oauth2 import service_account
     except ImportError as exc:
@@ -169,7 +162,6 @@ def _download_drive_service_account(file_id: str) -> tuple[bytes, str]:
                 "code": "google_auth_missing",
                 "message": (
                     "Le package google-auth est manquant sur le serveur. "
-                    "Ajoute-le aux dépendances et redéploie. "
                     f"Détail: {exc}"
                 ),
             },
@@ -188,7 +180,6 @@ def _download_drive_service_account(file_id: str) -> tuple[bytes, str]:
     scopes = ["https://www.googleapis.com/auth/drive.readonly"]
     creds = service_account.Credentials.from_service_account_info(info, scopes=scopes)
 
-    # Refresh du token via httpx (évite la dépendance optionnelle « requests »)
     class _HttpxAuthResponse:
         def __init__(self, response: httpx.Response):
             self.status = response.status_code
@@ -210,9 +201,59 @@ def _download_drive_service_account(file_id: str) -> tuple[bytes, str]:
                 return _HttpxAuthResponse(response)
 
     creds.refresh(_HttpxAuthRequest())
+    if not creds.token:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "code": "token_failed",
+                "message": "Impossible d'obtenir un access token Google Drive.",
+            },
+        )
 
+    expiry = getattr(creds, "expiry", None)
+    expires_at = (
+        expiry.timestamp()
+        if expiry is not None
+        else now + 3500
+    )
+    with _cache_lock:
+        _cached_token = str(creds.token)
+        _cached_token_expires_at = float(expires_at)
+        return _cached_token
+
+
+def _download_drive_public(file_id: str) -> bytes:
+    url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    with httpx.Client(follow_redirects=True, timeout=60.0) as client:
+        response = client.get(url)
+        if response.status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={
+                    "code": "drive_unavailable",
+                    "message": "Impossible de télécharger le PDF depuis Google Drive.",
+                },
+            )
+        content_type = response.headers.get("content-type", "application/pdf")
+        if "text/html" in content_type.lower():
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={
+                    "code": "drive_confirm_required",
+                    "message": (
+                        "Google Drive a bloqué le téléchargement direct. "
+                        "Partage le fichier en lecture « avec le lien », ou configure "
+                        "GOOGLE_SERVICE_ACCOUNT_JSON (mode service_account)."
+                    ),
+                },
+            )
+        return response.content
+
+
+def _download_drive_service_account(file_id: str) -> bytes:
+    token = _get_service_account_token()
     url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-    headers = {"Authorization": f"Bearer {creds.token}"}
+    headers = {"Authorization": f"Bearer {token}"}
     with httpx.Client(timeout=60.0) as client:
         response = client.get(url, headers=headers)
         if response.status_code >= 400:
@@ -226,7 +267,36 @@ def _download_drive_service_account(file_id: str) -> tuple[bytes, str]:
                     ),
                 },
             )
-        return response.content, "application/pdf"
+        return response.content
+
+
+def _fetch_drive_pdf(file_id: str) -> bytes:
+    cached = _pdf_cache_get(file_id)
+    if cached is not None:
+        return cached
+
+    mode = (settings.FICHE_TECHNIQUE_DRIVE_MODE or "public").strip().lower()
+    if mode == "service_account":
+        content = _download_drive_service_account(file_id)
+    else:
+        content = _download_drive_public(file_id)
+
+    _pdf_cache_set(file_id, content)
+    return content
+
+
+def _pdf_response(content: bytes, filename: str, *, cache_hit: bool = False) -> StreamingResponse:
+    # Cache navigateur long : les fiches changent rarement.
+    cache_control = "public, max-age=3600" if cache_hit else "public, max-age=600"
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": cache_control,
+            "X-Fiche-Cache": "HIT" if cache_hit else "MISS",
+        },
+    )
 
 
 @router.get("/fiche-technique/{document_key}/status")
@@ -246,7 +316,7 @@ def fiche_technique_status(document_key: str):
 @router.get("/fiche-technique/{document_key}")
 def download_fiche_technique(document_key: str):
     """
-    Proxy PDF fiche technique.
+    Proxy PDF fiche technique (avec cache mémoire serveur).
     Clé = nom produit (ex. « Totem Caisson Bois 80 ») mappé dans FICHE_TECHNIQUE_DRIVE_MAP.
     """
     key = document_key.strip()
@@ -257,18 +327,11 @@ def download_fiche_technique(document_key: str):
         )
 
     safe_slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", key).strip("-").lower() or "fiche"
+    filename = _safe_filename(safe_slug)
 
     local = _local_pdf_path(safe_slug) or _local_pdf_path(key.casefold())
     if local is not None:
-        data = local.read_bytes()
-        return StreamingResponse(
-            io.BytesIO(data),
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="{_safe_filename(safe_slug)}"',
-                "Cache-Control": "private, max-age=300",
-            },
-        )
+        return _pdf_response(local.read_bytes(), filename, cache_hit=True)
 
     file_id = _resolve_drive_file_id(key)
     if not file_id:
@@ -283,17 +346,6 @@ def download_fiche_technique(document_key: str):
             },
         )
 
-    mode = (settings.FICHE_TECHNIQUE_DRIVE_MODE or "public").strip().lower()
-    if mode == "service_account":
-        content, media_type = _download_drive_service_account(file_id)
-    else:
-        content, media_type = _download_drive_public(file_id)
-
-    return StreamingResponse(
-        io.BytesIO(content),
-        media_type=media_type,
-        headers={
-            "Content-Disposition": f'attachment; filename="{_safe_filename(safe_slug)}"',
-            "Cache-Control": "private, max-age=300",
-        },
-    )
+    cache_hit = _pdf_cache_get(file_id) is not None
+    content = _fetch_drive_pdf(file_id)
+    return _pdf_response(content, filename, cache_hit=cache_hit)

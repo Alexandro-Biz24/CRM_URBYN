@@ -5,13 +5,14 @@ import re
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Company, Product
+from app.models import AddressCatalog, Catalog, CatalogProduct, Company, Product
 from app.models.address import Address
 from app.repositories import cart_repo
 from app.repositories import client_portal_repo as buyer_repo
 from app.repositories import product_price_repo, supplier_portal_repo as repo
 from app.services import buyer_shipping
 from app.schemas.client_portal import (
+    MASSIF_OFFER_DEFAULT,
     MASSIF_ROOT_DEFAULT,
     TOTEM_ROOT_DEFAULT,
     BuyerCatalogNavItem,
@@ -27,6 +28,8 @@ from app.schemas.client_portal import (
     MassifLeafCatalogsResponse,
     MassifManilleOut,
     MassifManillesResponse,
+    MassifPaletteOut,
+    MassifPaletteResponse,
     MassifProductOut,
     MassifProductsRequest,
     MassifProductsResponse,
@@ -56,6 +59,11 @@ class ClientPortalError(Exception):
         self.code = code
         self.message = message
         super().__init__(message)
+
+
+# Origine livraison par défaut si aucune adresse catalogue / produit.
+FALLBACK_ORIGIN_ZIP = "75015"
+FALLBACK_ORIGIN_CITY = "Paris"
 
 
 def _require_client_session(db: Session, session: PortalSession) -> PortalContext:
@@ -542,7 +550,10 @@ def _parse_weight_value(raw: str | None) -> float | None:
     return _parse_numeric_value(raw)
 
 
-def _product_dimensions(db: Session, product_id: int) -> ProductDimensionsOut:
+def _dims_from_attr_rows(
+    mandatory_rows: list,
+    free_attrs: list,
+) -> ProductDimensionsOut:
     dims: dict[str, float | None] = {
         "longueur": None,
         "largeur": None,
@@ -559,26 +570,82 @@ def _product_dimensions(db: Session, product_id: int) -> ProductDimensionsOut:
         if parsed is not None:
             dims[field] = parsed
 
-    for val, defn in repo.list_mandatory_attribute_values(db, product_id):
+    for val, defn in mandatory_rows:
         _apply(defn.attribute_name, val.value)
-    for attr in repo.list_product_attributes(db, product_id):
+    for attr in free_attrs:
         _apply(attr.name, attr.value)
-
     return ProductDimensionsOut(**dims)
 
 
-def _product_weight_kg(db: Session, product_id: int) -> float | None:
-    for val, defn in repo.list_mandatory_attribute_values(db, product_id):
+def _weight_from_attr_rows(mandatory_rows: list, free_attrs: list) -> float | None:
+    for val, defn in mandatory_rows:
         if _is_poids_attribute(defn.attribute_name):
             parsed = _parse_weight_value(val.value)
             if parsed is not None:
                 return parsed
-    for attr in repo.list_product_attributes(db, product_id):
+    for attr in free_attrs:
         if _is_poids_attribute(attr.name):
             parsed = _parse_weight_value(attr.value)
             if parsed is not None:
                 return parsed
     return None
+
+
+def _attr_map_from_free(free_attrs: list) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for attr in free_attrs:
+        name = (attr.name or "").strip()
+        value = (attr.value or "").strip()
+        if name and value:
+            out[name] = value
+    return out
+
+
+def _mandatory_out_from_rows(
+    mandatory_rows: list,
+    *,
+    catalog_id: int | None = None,
+) -> list[MandatoryAttributeValueOut]:
+    rows: list[MandatoryAttributeValueOut] = []
+    for val, defn in mandatory_rows:
+        if catalog_id is not None and defn.catalog_id != catalog_id:
+            continue
+        rows.append(
+            MandatoryAttributeValueOut(
+                definition_id=defn.id,
+                catalog_id=defn.catalog_id,
+                attribute_name=defn.attribute_name,
+                value=val.value,
+            )
+        )
+    return rows
+
+
+def _load_product_attr_bundle(db: Session, product_ids: list[int]) -> tuple[
+    dict[int, list],
+    dict[int, list],
+    dict[int, object],
+]:
+    """Charge mandatory attrs + free attrs + latest prices en 3 requêtes."""
+    ids = sorted({int(pid) for pid in product_ids if pid})
+    if not ids:
+        return {}, {}, {}
+    mandatory = repo.list_mandatory_attribute_values_for_products(db, ids)
+    free = repo.list_product_attributes_for_products(db, ids)
+    prices = product_price_repo.get_latest_prices_for_products(db, ids)
+    return mandatory, free, prices
+
+
+def _product_dimensions(db: Session, product_id: int) -> ProductDimensionsOut:
+    mandatory = repo.list_mandatory_attribute_values(db, product_id)
+    free = repo.list_product_attributes(db, product_id)
+    return _dims_from_attr_rows(mandatory, free)
+
+
+def _product_weight_kg(db: Session, product_id: int) -> float | None:
+    mandatory = repo.list_mandatory_attribute_values(db, product_id)
+    free = repo.list_product_attributes(db, product_id)
+    return _weight_from_attr_rows(mandatory, free)
 
 
 def search_products_by_weight(
@@ -594,26 +661,40 @@ def search_products_by_weight(
     leaf_ids = buyer_repo.collect_leaf_ids_for_catalog_refs(db, payload.catalog)
     rows = buyer_repo.get_product_catalog_links_in_catalogs(db, leaf_ids)
 
-    products: list[ProductWeightFilterItem] = []
+    unique_products: list = []
     seen: set[int] = set()
-
+    meta: dict[int, tuple] = {}
     for product, company, catalog in rows:
         if product.id in seen:
             continue
-        weight = _product_weight_kg(db, product.id)
+        seen.add(product.id)
+        unique_products.append(product)
+        meta[product.id] = (company, catalog)
+
+    mandatory, free, prices = _load_product_attr_bundle(
+        db, [p.id for p in unique_products]
+    )
+
+    products: list[ProductWeightFilterItem] = []
+    for product in unique_products:
+        weight = _weight_from_attr_rows(
+            mandatory.get(product.id, []), free.get(product.id, [])
+        )
         if weight is None:
             continue
         if weight < payload.poids_min or weight > payload.poids_max:
             continue
-        seen.add(product.id)
-        latest = product_price_repo.get_latest_price(db, product.id)
+        company, catalog = meta[product.id]
+        latest = prices.get(product.id)
         products.append(
             ProductWeightFilterItem(
                 product_id=product.id,
                 product_name=product.product_name,
                 admin_sku=product.admin_sku,
                 poids=weight,
-                dimensions=_product_dimensions(db, product.id),
+                dimensions=_dims_from_attr_rows(
+                    mandatory.get(product.id, []), free.get(product.id, [])
+                ),
                 price=float(latest.price) if latest else 0.0,
                 currency=latest.currency if latest else "EUR",
                 company_name=company.company_name if company else None,
@@ -630,31 +711,50 @@ def search_products_by_weight(
 
 
 def _resolve_massif_root(db: Session, root_name: str):
+    """Racine produits massif : « Massif » (nouveau), fallback « Massif Type » (legacy)."""
     root = buyer_repo.find_active_root_catalog_by_name(db, root_name)
     if root is not None:
         return root
     aliases = (
+        "Massif",
         "Massif_Type",
         "Massif Type",
         root_name.replace(" ", "_"),
         root_name.replace("_", " "),
     )
+    seen = {_norm_offer(root_name)}
     for alias in aliases:
-        if alias == root_name:
+        if _norm_offer(alias) in seen:
             continue
+        seen.add(_norm_offer(alias))
         root = buyer_repo.find_active_root_catalog_by_name(db, alias)
         if root is not None:
             return root
     return None
 
 
-def list_massif_leaf_catalogs(
+def _find_named_child(db: Session, parent_id: int, *names: str):
+    """Enfant actif dont le nom matche (casse / _ / espaces ignorés)."""
+    needles = {_norm_offer(n) for n in names if (n or "").strip()}
+    if not needles:
+        return None
+    for child in buyer_repo.list_active_catalog_children(db, parent_id):
+        if _norm_offer(child.name or "") in needles:
+            return child
+    return None
+
+
+def _resolve_massif_scope(
     db: Session,
-    root_name: str = MASSIF_ROOT_DEFAULT,
-    *,
-    poids_min: float | None = None,
-    poids_max: float | None = None,
-) -> MassifLeafCatalogsResponse:
+    root_name: str,
+    offer: str = MASSIF_OFFER_DEFAULT,
+):
+    """
+    Scope sélection produits massif UNIQUEMENT :
+      Massif / {Aquisition|Acquisition|Location} / Massif_Type / …
+
+    Legacy : racine « Massif Type » sans nœud offre → scope = racine.
+    """
     root = _resolve_massif_root(db, root_name)
     if root is None:
         raise ClientPortalError(
@@ -662,13 +762,55 @@ def list_massif_leaf_catalogs(
             f"Catalogue racine « {root_name} » introuvable.",
         )
 
+    offer_node = _find_child_by_offer(db, root.id, offer)
+    if offer_node is not None:
+        type_node = _find_named_child(
+            db,
+            offer_node.id,
+            "Massif_Type",
+            "Massif Type",
+            "MassifType",
+        )
+        if type_node is None:
+            raise ClientPortalError(
+                "not_found",
+                f"Catalogue « Massif_Type » introuvable sous "
+                f"« {root.name or root_name}/{offer_node.name or offer} ».",
+            )
+        return root, offer_node, type_node
+
+    # Des nœuds offre existent mais pas celui demandé → erreur claire
+    children = buyer_repo.list_active_catalog_children(db, root.id)
+    offer_names = {_norm_offer(c.name or "") for c in children}
+    known_offers = _offer_name_aliases("acquisition") | _offer_name_aliases("location")
+    if offer_names & known_offers:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue offre « {offer} » introuvable sous « {root.name or root_name} » "
+            f"(attendu : Acquisition/Aquisition ou Location).",
+        )
+
+    # Legacy sans nœud offre (ancienne racine Massif Type)
+    return root, None, root
+
+
+def list_massif_leaf_catalogs(
+    db: Session,
+    root_name: str = MASSIF_ROOT_DEFAULT,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
+    poids_min: float | None = None,
+    poids_max: float | None = None,
+) -> MassifLeafCatalogsResponse:
+    root, offer_node, scope = _resolve_massif_scope(db, root_name, offer)
+
     if poids_min is not None and poids_max is not None and poids_min > poids_max:
         raise ClientPortalError(
             "invalid_range",
             "poids_min doit être inférieur ou égal à poids_max.",
         )
 
-    leaves = buyer_repo.collect_leaf_catalogs(db, root.id)
+    leaves = buyer_repo.collect_leaf_catalogs(db, scope.id)
     catalogs: list[MassifLeafCatalogOut] = []
     for leaf in leaves:
         if poids_min is not None and poids_max is not None:
@@ -687,6 +829,9 @@ def list_massif_leaf_catalogs(
     return MassifLeafCatalogsResponse(
         root_id=root.id,
         root_name=root.name or root_name,
+        offer=offer,
+        offer_catalog_id=offer_node.id if offer_node is not None else None,
+        offer_catalog_name=offer_node.name if offer_node is not None else None,
         count=len(catalogs),
         catalogs=catalogs,
     )
@@ -699,12 +844,18 @@ def _leaf_has_products_in_weight_range(
     poids_max: float,
 ) -> bool:
     rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [catalog_id])
+    product_ids = []
     seen: set[int] = set()
     for product, _company, _cat in rows:
         if product.id in seen:
             continue
         seen.add(product.id)
-        weight = _product_weight_kg(db, product.id)
+        product_ids.append(product.id)
+    if not product_ids:
+        return False
+    mandatory, free, _prices = _load_product_attr_bundle(db, product_ids)
+    for pid in product_ids:
+        weight = _weight_from_attr_rows(mandatory.get(pid, []), free.get(pid, []))
         if weight is None:
             continue
         if poids_min <= weight <= poids_max:
@@ -715,15 +866,12 @@ def _leaf_has_products_in_weight_range(
 def list_massif_available_weight_bands(
     db: Session,
     root_name: str = MASSIF_ROOT_DEFAULT,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
     bands: list[tuple[float, float]] | None = None,
 ) -> MassifWeightBandsResponse:
-    """Indique quelles fourchettes de poids ont au moins un produit sous Massif Type."""
-    root = _resolve_massif_root(db, root_name)
-    if root is None:
-        raise ClientPortalError(
-            "not_found",
-            f"Catalogue racine « {root_name} » introuvable.",
-        )
+    """Indique quelles fourchettes de poids ont au moins un produit sous Massif/{offer}/Massif_Type."""
+    root, offer_node, scope = _resolve_massif_scope(db, root_name, offer)
 
     default_bands = bands or [
         (0.0, 299.0),
@@ -732,15 +880,20 @@ def list_massif_available_weight_bands(
         (1501.0, 2500.0),
         (2501.0, 99999.0),
     ]
-    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, root.id)
+    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, scope.id)
     rows = buyer_repo.get_product_catalog_links_in_catalogs(db, leaf_ids)
-    weights: list[float] = []
+    product_ids: list[int] = []
     seen: set[int] = set()
     for product, _company, _cat in rows:
         if product.id in seen:
             continue
         seen.add(product.id)
-        w = _product_weight_kg(db, product.id)
+        product_ids.append(product.id)
+
+    mandatory, free, _prices = _load_product_attr_bundle(db, product_ids)
+    weights: list[float] = []
+    for pid in product_ids:
+        w = _weight_from_attr_rows(mandatory.get(pid, []), free.get(pid, []))
         if w is not None:
             weights.append(w)
 
@@ -758,6 +911,9 @@ def list_massif_available_weight_bands(
     return MassifWeightBandsResponse(
         root_id=root.id,
         root_name=root.name or root_name,
+        offer=offer,
+        offer_catalog_id=offer_node.id if offer_node is not None else None,
+        offer_catalog_name=offer_node.name if offer_node is not None else None,
         bands=out,
     )
 
@@ -782,21 +938,19 @@ def list_massif_products(
     db: Session,
     payload: MassifProductsRequest,
     root_name: str = MASSIF_ROOT_DEFAULT,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
 ) -> MassifProductsResponse:
     poids_min, poids_max = _resolve_massif_weight_range(payload)
 
-    root = _resolve_massif_root(db, root_name)
-    if root is None:
-        raise ClientPortalError(
-            "not_found",
-            f"Catalogue racine « {root_name} » introuvable.",
-        )
+    root, _offer_node, scope = _resolve_massif_scope(db, root_name, offer)
 
-    leaf_ids = set(buyer_repo.collect_leaf_catalog_ids(db, root.id))
+    leaf_ids = set(buyer_repo.collect_leaf_catalog_ids(db, scope.id))
     if payload.catalog_id not in leaf_ids:
         raise ClientPortalError(
             "invalid_catalog",
-            f"Le catalogue choisi n'est pas une feuille sous « {root_name} ».",
+            f"Le catalogue choisi n'est pas une feuille sous "
+            f"« {root.name or root_name}/{offer}/Massif_Type ».",
         )
 
     catalog = repo.get_catalog(db, payload.catalog_id)
@@ -804,30 +958,38 @@ def list_massif_products(
         raise ClientPortalError("not_found", "Catalogue introuvable.")
 
     rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [payload.catalog_id])
-    products: list[MassifProductOut] = []
+    unique: list = []
     seen: set[int] = set()
-
+    row_meta: dict[int, tuple] = {}
     for product, company, cat in rows:
         if product.id in seen:
             continue
-        weight = _product_weight_kg(db, product.id)
-        if weight is None:
-            continue
-        if weight < poids_min or weight > poids_max:
-            continue
         seen.add(product.id)
-        latest = product_price_repo.get_latest_price(db, product.id)
+        unique.append(product)
+        row_meta[product.id] = (company, cat)
+
+    mandatory, free, prices = _load_product_attr_bundle(db, [p.id for p in unique])
+    origin_cache: dict[int, tuple[str, str | None, int | None]] = {}
+
+    products: list[MassifProductOut] = []
+    for product in unique:
+        weight = _weight_from_attr_rows(
+            mandatory.get(product.id, []), free.get(product.id, [])
+        )
+        if weight is None or weight < poids_min or weight > poids_max:
+            continue
+        company, cat = row_meta[product.id]
+        latest = prices.get(product.id)
         free_attrs = [
             ProductAttributeOut(id=a.id, name=a.name, value=a.value)
-            for a in repo.list_product_attributes(db, product.id)
+            for a in free.get(product.id, [])
         ]
         company_zip = company_city = company_country = None
         if company is not None:
-            addr = _primary_company_address(db, company.tva_intra_com)
-            if addr is not None:
-                company_zip = addr.zip_code
-                company_city = addr.city
-                company_country = addr.country_code
+            if product.id not in origin_cache:
+                origin_cache[product.id] = resolve_product_origin_zip(db, product)
+            company_zip, company_city, _addr_id = origin_cache[product.id]
+            company_country = "FR"
         products.append(
             MassifProductOut(
                 product_id=product.id,
@@ -835,7 +997,9 @@ def list_massif_products(
                 admin_sku=product.admin_sku,
                 description=_product_description(db, product),
                 poids=weight,
-                dimensions=_product_dimensions(db, product.id),
+                dimensions=_dims_from_attr_rows(
+                    mandatory.get(product.id, []), free.get(product.id, [])
+                ),
                 price=float(latest.price) if latest else 0.0,
                 currency=latest.currency if latest else "EUR",
                 company_name=company.company_name if company else None,
@@ -845,8 +1009,9 @@ def list_massif_products(
                 company_country=company_country,
                 catalog_id=cat.id,
                 catalog_name=cat.name,
-                mandatory_attributes=_mandatory_out(
-                    product.id, db, catalog_id=payload.catalog_id
+                mandatory_attributes=_mandatory_out_from_rows(
+                    mandatory.get(product.id, []),
+                    catalog_id=payload.catalog_id,
                 ),
                 free_attributes=free_attrs,
             )
@@ -867,37 +1032,95 @@ def _norm_manille_type(value: str | None) -> str:
     return " ".join((value or "").strip().lower().replace(" ", "").split())
 
 
-def _resolve_massif_accessoire_catalog(db: Session):
-    """Feuille « Accessoire » sous la racine « Massif » ([Massif/Accessoire])."""
+def _resolve_massif_manilles_catalog(
+    db: Session,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
+):
+    """
+    Catalogue manilles :
+      Massif / {Acquisition|Aquisition|Location} / Massif_Moyen_de_Levage / Manille
+    Fallback legacy : racine Massif_Moyen_de_Levage (+ enfant Manille si présent).
+    """
     root = buyer_repo.find_active_root_catalog_by_name(db, "Massif")
-    if root is None:
-        return None, None
-    for child in buyer_repo.list_active_catalog_children(db, root.id):
-        if _norm_offer(child.name or "") == "accessoire":
-            return root, child
-    return root, None
+    if root is not None:
+        offer_node = _find_child_by_offer(db, root.id, offer)
+        if offer_node is None and _norm_offer(offer) == "location":
+            offer_node = _find_child_by_offer(db, root.id, "Acquisition")
+        if offer_node is not None:
+            levage = _find_named_child(
+                db,
+                offer_node.id,
+                "Massif_Moyen_de_Levage",
+                "Massif Moyen de Levage",
+                "Massif_Moyen_de_levage",
+                "Moyen_de_Levage",
+            )
+            if levage is not None:
+                manille_node = _find_named_child(
+                    db,
+                    levage.id,
+                    "Manille",
+                    "Manilles",
+                )
+                if manille_node is not None:
+                    return root, offer_node, levage, manille_node
+                # Pas encore de sous-feuille Manille → produits directement sous levage
+                return root, offer_node, levage, levage
+
+    legacy = buyer_repo.find_active_root_catalog_by_name(db, "Massif_Moyen_de_Levage")
+    if legacy is None:
+        legacy = buyer_repo.find_active_root_catalog_by_name(
+            db, "Massif Moyen de Levage"
+        )
+    if legacy is not None:
+        manille_node = _find_named_child(db, legacy.id, "Manille", "Manilles")
+        return legacy, None, legacy, manille_node or legacy
+    return None, None, None, None
 
 
-def list_massif_manilles(db: Session) -> MassifManillesResponse:
-    """Manilles du catalogue [Massif/Accessoire], indexées par attribut « Manille Type »."""
-    root, accessoire = _resolve_massif_accessoire_catalog(db)
-    if root is None or accessoire is None:
+def list_massif_manilles(
+    db: Session,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
+) -> MassifManillesResponse:
+    """Manilles sous Massif/{offer}/Massif_Moyen_de_Levage/Manille."""
+    root, offer_node, levage, manille_cat = _resolve_massif_manilles_catalog(
+        db, offer=offer
+    )
+    if root is None or manille_cat is None:
         raise ClientPortalError(
             "not_found",
-            "Catalogue « Massif / Accessoire » introuvable.",
+            f"Catalogue « Massif / {offer} / Massif_Moyen_de_Levage / Manille » introuvable.",
         )
 
-    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [accessoire.id])
-    manilles: list[MassifManilleOut] = []
+    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, manille_cat.id)
+    if not leaf_ids:
+        leaf_ids = [manille_cat.id]
+    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, leaf_ids)
+    products = []
+    companies = {}
     seen: set[int] = set()
     for product, company, _cat in rows:
         if product.id in seen:
             continue
         seen.add(product.id)
-        attrs = _product_attr_map(db, product.id)
+        products.append(product)
+        companies[product.id] = company
+
+    mandatory, free, prices = _load_product_attr_bundle(db, [p.id for p in products])
+    manilles: list[MassifManilleOut] = []
+    for product in products:
+        attrs = _attr_map_from_free(free.get(product.id, []))
+        for val, defn in mandatory.get(product.id, []):
+            name = (defn.attribute_name or "").strip()
+            value = (val.value or "").strip()
+            if name and value and name not in attrs:
+                attrs[name] = value
         manille_type = None
         for key, val in attrs.items():
-            if key.casefold().replace(" ", "") in {"manilletype", "manille_type"}:
+            compact = key.casefold().replace(" ", "")
+            if compact in {"manilletype", "manille_type"}:
                 manille_type = val.strip()
                 break
             if "manille" in key.casefold() and "type" in key.casefold():
@@ -905,12 +1128,13 @@ def list_massif_manilles(db: Session) -> MassifManillesResponse:
                 break
         if not manille_type:
             continue
-        # Produits Accessoire avec « Manille Type » = manilles (Cale Bois n'a pas cet attribut)
         name_cf = (product.product_name or "").casefold()
+        # Uniquement les vrais produits manille (évite les massifs liés par erreur
+        # dans le même catalogue via l'attribut « Manille Type »).
         if "manille" not in name_cf:
             continue
-
-        latest = product_price_repo.get_latest_price(db, product.id)
+        latest = prices.get(product.id)
+        company = companies.get(product.id)
         manilles.append(
             MassifManilleOut(
                 product_id=product.id,
@@ -922,16 +1146,157 @@ def list_massif_manilles(db: Session) -> MassifManillesResponse:
                 currency=latest.currency if latest else "EUR",
                 company_name=company.company_name if company else None,
                 company_tva=company.tva_intra_com if company else None,
-                poids=_product_weight_kg(db, product.id),
+                poids=_weight_from_attr_rows(
+                    mandatory.get(product.id, []), free.get(product.id, [])
+                ),
             )
         )
 
-    manilles.sort(key=lambda m: (_norm_manille_type(m.manille_type), m.product_name.casefold()))
+    manilles.sort(
+        key=lambda m: (_norm_manille_type(m.manille_type), m.product_name.casefold())
+    )
+    path = [root.name or "Massif"]
+    if offer_node is not None:
+        path.append(offer_node.name or offer)
+    if levage is not None and levage.id != manille_cat.id:
+        path.append(levage.name or "Massif_Moyen_de_Levage")
+    path.append(manille_cat.name or "Manille")
     return MassifManillesResponse(
-        catalog_id=accessoire.id,
-        catalog_path=[root.name or "Massif", accessoire.name or "Accessoire"],
+        catalog_id=manille_cat.id,
+        catalog_path=path,
         count=len(manilles),
         manilles=manilles,
+    )
+
+
+def get_massif_palette(
+    db: Session,
+    *,
+    offer: str = MASSIF_OFFER_DEFAULT,
+) -> MassifPaletteResponse:
+    """Produit « Palette » (+ cales bois) sous Massif/{offer}/Accessoire."""
+    root = buyer_repo.find_active_root_catalog_by_name(db, "Massif")
+    if root is None:
+        raise ClientPortalError(
+            "not_found",
+            "Catalogue racine « Massif » introuvable.",
+        )
+
+    offer_node = _find_child_by_offer(db, root.id, offer)
+    if offer_node is None and _norm_offer(offer) == "location":
+        # Accessoires / manilles souvent seulement sous Acquisition pour l'instant
+        offer_node = _find_child_by_offer(db, root.id, "Acquisition")
+    if offer_node is None:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue offre « {offer} » introuvable sous Massif.",
+        )
+
+    accessoire = _find_named_child(
+        db, offer_node.id, "Accessoire", "Accessoires", "Massif_Accessoire"
+    )
+    if accessoire is None:
+        raise ClientPortalError(
+            "not_found",
+            f"Catalogue « Massif / {offer_node.name or offer} / Accessoire » introuvable.",
+        )
+
+    path = [
+        root.name or "Massif",
+        offer_node.name or offer,
+        accessoire.name or "Accessoire",
+    ]
+
+    leaf_ids = buyer_repo.collect_leaf_catalog_ids(db, accessoire.id)
+    if not leaf_ids:
+        leaf_ids = [accessoire.id]
+
+    # Sous-catalogue « Palette » s'il existe (Accessoire/Palette)
+    palette_leaf = _find_named_child(db, accessoire.id, "Palette", "Palettes")
+    search_ids = (
+        buyer_repo.collect_leaf_catalog_ids(db, palette_leaf.id) or [palette_leaf.id]
+        if palette_leaf is not None
+        else leaf_ids
+    )
+
+    rows = buyer_repo.get_product_catalog_links_in_catalogs(db, search_ids)
+    if not rows and palette_leaf is not None:
+        rows = buyer_repo.get_product_catalog_links_in_catalogs(db, leaf_ids)
+
+    def _looks_like_palette(product_name: str | None, sku: str | None) -> bool:
+        name = (product_name or "").casefold().strip()
+        sku_cf = (sku or "").casefold().strip()
+        compact = "".join(ch for ch in name if ch.isalnum())
+        if not name and not sku_cf:
+            return False
+        # Exclure cales bois
+        if "cale" in name and "palett" not in name:
+            return False
+        # « Palette » / typo DB « Pallette »
+        if compact in {"palette", "pallette"} or name in {"palette", "pallette"}:
+            return True
+        if name.startswith("palette") or name.startswith("pallette"):
+            return True
+        if "palette" in name or "pallette" in name:
+            return True
+        if "palette" in sku_cf or "pallette" in sku_cf or sku_cf.startswith("pal"):
+            return True
+        return False
+
+    palette_out: MassifPaletteOut | None = None
+    scanned: list[str] = []
+    for product, company, _cat in rows:
+        scanned.append(product.product_name or product.admin_sku or f"#{product.id}")
+        if not _looks_like_palette(product.product_name, product.admin_sku):
+            continue
+        latest = product_price_repo.get_latest_price(db, product.id)
+        candidate = MassifPaletteOut(
+            product_id=product.id,
+            product_name=product.product_name,
+            admin_sku=product.admin_sku,
+            client_sku=product.client_sku,
+            description=_product_description(db, product),
+            price=float(latest.price) if latest else 0.0,
+            currency=latest.currency if latest else "EUR",
+            company_name=company.company_name if company else None,
+            company_tva=company.tva_intra_com if company else None,
+            poids=_product_weight_kg(db, product.id),
+        )
+        name_cf = (product.product_name or "").casefold().strip()
+        palette_out = candidate
+        if name_cf == "palette" or name_cf.startswith("palette "):
+            break
+
+    if palette_out is None and scanned:
+        # Dernier recours : produit unique non-cale dans Accessoire
+        non_cale = [
+            (p, c)
+            for p, c, _cat in rows
+            if "cale" not in (p.product_name or "").casefold()
+        ]
+        if len(non_cale) == 1:
+            product, company = non_cale[0]
+            latest = product_price_repo.get_latest_price(db, product.id)
+            palette_out = MassifPaletteOut(
+                product_id=product.id,
+                product_name=product.product_name,
+                admin_sku=product.admin_sku,
+                client_sku=product.client_sku,
+                description=_product_description(db, product),
+                price=float(latest.price) if latest else 0.0,
+                currency=latest.currency if latest else "EUR",
+                company_name=company.company_name if company else None,
+                company_tva=company.tva_intra_com if company else None,
+                poids=_product_weight_kg(db, product.id),
+            )
+
+    if palette_leaf is not None:
+        path.append(palette_leaf.name or "Palette")
+
+    return MassifPaletteResponse(
+        catalog_id=(palette_leaf.id if palette_leaf is not None else accessoire.id),
+        catalog_path=path,
+        palette=palette_out,
     )
 
 
@@ -956,15 +1321,15 @@ def list_totem_ballasts(db: Session) -> TotemBallastsResponse:
         )
 
     rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [accessoire.id])
-    ballasts: list[TotemBallastOut] = []
+    products = []
+    companies = {}
     seen: set[int] = set()
     for product, company, _cat in rows:
         if product.id in seen:
             continue
         seen.add(product.id)
         name_cf = (product.product_name or "").casefold()
-        sku_cf = (product.client_sku or "").casefold()
-        # Produits lest / fonte (évite d'autres accessoires éventuels)
+        sku_cf = (getattr(product, "client_sku", None) or "").casefold()
         if not (
             "lest" in name_cf
             or "fonte" in name_cf
@@ -972,32 +1337,40 @@ def list_totem_ballasts(db: Session) -> TotemBallastsResponse:
             or "25" in name_cf
         ):
             continue
-        poids = _product_weight_kg(db, product.id)
-        # Préférer les 25 kg ; garder les autres si poids inconnu
-        latest = product_price_repo.get_latest_price(db, product.id)
+        products.append(product)
+        companies[product.id] = company
+
+    mandatory, free, prices = _load_product_attr_bundle(db, [p.id for p in products])
+    ballasts: list[TotemBallastOut] = []
+    for product in products:
+        latest = prices.get(product.id)
+        company = companies.get(product.id)
         ballasts.append(
             TotemBallastOut(
                 product_id=product.id,
                 product_name=product.product_name,
-                client_sku=product.client_sku,
+                client_sku=getattr(product, "client_sku", None),
                 admin_sku=product.admin_sku,
                 description=_product_description(db, product),
                 price=float(latest.price) if latest else 0.0,
                 currency=latest.currency if latest else "EUR",
-                poids=poids,
+                poids=_weight_from_attr_rows(
+                    mandatory.get(product.id, []), free.get(product.id, [])
+                ),
                 company_name=company.company_name if company else None,
                 company_tva=company.tva_intra_com if company else None,
             )
         )
 
     def _sort_key(b: TotemBallastOut) -> tuple:
-        # 25 kg d'abord, puis prix
         w = b.poids if b.poids is not None else 9999.0
-        dist = abs(w - 25.0)
-        return (dist, b.price, b.product_name.casefold())
+        return (abs(w - 25.0), b.price, b.product_name.casefold())
 
     ballasts.sort(key=_sort_key)
-    default = next((b for b in ballasts if b.poids is not None and abs(b.poids - 25.0) < 0.5), None)
+    default = next(
+        (b for b in ballasts if b.poids is not None and abs(b.poids - 25.0) < 0.5),
+        None,
+    )
     if default is None and ballasts:
         default = ballasts[0]
 
@@ -1005,12 +1378,10 @@ def list_totem_ballasts(db: Session) -> TotemBallastsResponse:
         catalog_id=accessoire.id,
         catalog_path=[root.name or "Totem", accessoire.name or "Accessoire"],
         count=len(ballasts),
-        ballasts=ballasts,
         default_ballast=default,
+        ballasts=ballasts,
     )
 
-
-# ── Totem ─────────────────────────────────────────────────────────────────────
 
 def _primary_company_address(db: Session, company_tva: str):
     """Adresse principale (ou première) d'une société fournisseur."""
@@ -1022,14 +1393,141 @@ def _primary_company_address(db: Session, company_tva: str):
     )
 
 
+def _catalog_ancestor_ids(db: Session, catalog_ids: set[int]) -> dict[int, int]:
+    """Map catalog_id → profondeur (0 = catalogue direct du produit)."""
+    if not catalog_ids:
+        return {}
+    depth_by_id: dict[int, int] = {cid: 0 for cid in catalog_ids}
+    frontier = set(catalog_ids)
+    depth = 0
+    # Remonte les parents (parent_id == id ⇒ racine)
+    while frontier and depth < 32:
+        depth += 1
+        rows = db.execute(
+            select(Catalog.id, Catalog.parent_id).where(Catalog.id.in_(frontier))
+        ).all()
+        next_frontier: set[int] = set()
+        for cid, parent_id in rows:
+            if parent_id is None or parent_id == cid:
+                continue
+            if parent_id not in depth_by_id:
+                depth_by_id[parent_id] = depth
+                next_frontier.add(parent_id)
+        frontier = next_frontier
+    return depth_by_id
+
+
+def _norm_company_name(name: str | None) -> str:
+    return " ".join((name or "").casefold().split())
+
+
+def _address_company_match_score(
+    db: Session, product_company_tva: str, address_company_tva: str
+) -> int | None:
+    """0 = même TVA, 1 = même raison sociale (ex. Urbanize / URBANIZE), sinon None."""
+    if address_company_tva == product_company_tva:
+        return 0
+    product_co = db.get(Company, product_company_tva)
+    address_co = db.get(Company, address_company_tva)
+    if not product_co or not address_co:
+        return None
+    p_name = _norm_company_name(product_co.company_name)
+    a_name = _norm_company_name(address_co.company_name)
+    if p_name and a_name and p_name == a_name:
+        return 1
+    return None
+
+
+def _address_from_catalog_links(db: Session, product: Product) -> Address | None:
+    """Résout l'adresse d'origine via association adresse↔catalogue (héritage parents).
+
+    Matching fournisseur :
+    1) même TVA produit/adresse
+    2) sinon même raison sociale (évite le split Urbanize / URBANIZE à 2 TVA)
+    Ne prend jamais l'adresse d'un autre fournisseur sur le même catalogue.
+    """
+    product_catalog_ids = set(
+        db.scalars(
+            select(CatalogProduct.catalog_id).where(
+                CatalogProduct.product_id == product.id
+            )
+        ).all()
+    )
+    if not product_catalog_ids:
+        return None
+
+    depth_by_catalog = _catalog_ancestor_ids(db, product_catalog_ids)
+    candidate_catalog_ids = list(depth_by_catalog.keys())
+    rows = db.execute(
+        select(Address, AddressCatalog.catalog_id)
+        .join(AddressCatalog, AddressCatalog.address_id == Address.id)
+        .where(AddressCatalog.catalog_id.in_(candidate_catalog_ids))
+    ).all()
+    if not rows:
+        return None
+
+    # Plus spécifique = profondeur min, puis meilleur match société, puis id adresse
+    best: Address | None = None
+    best_key: tuple[int, int, int] | None = None
+    for addr, catalog_id in rows:
+        score = _address_company_match_score(
+            db, product.company_tva_intra_com, addr.company_tva_intra_com
+        )
+        if score is None:
+            continue
+        d = depth_by_catalog.get(catalog_id, 10**9)
+        key = (d, score, addr.id)
+        if best_key is None or key < best_key:
+            best = addr
+            best_key = key
+    return best
+
+
+def _product_origin_address(db: Session, product: Product) -> Address | None:
+    """Origine expédition : catalogue associé → address_id produit → None (fallback 75015)."""
+    via_catalog = _address_from_catalog_links(db, product)
+    if via_catalog is not None:
+        return via_catalog
+    if product.address_id:
+        addr = db.get(Address, product.address_id)
+        if (
+            addr is not None
+            and addr.company_tva_intra_com == product.company_tva_intra_com
+        ):
+            return addr
+    return None
+
+
+def resolve_product_origin_zip(
+    db: Session, product: Product
+) -> tuple[str, str | None, int | None]:
+    """(zip, city, address_id) — fallback Paris 75015 si aucune adresse référencée."""
+    addr = _product_origin_address(db, product)
+    if addr is not None and (addr.zip_code or "").strip():
+        return (addr.zip_code or "").strip(), addr.city, addr.id
+    return FALLBACK_ORIGIN_ZIP, FALLBACK_ORIGIN_CITY, None
+
+
 def _norm_offer(offer: str) -> str:
     return " ".join((offer or "").strip().replace("_", " ").split()).casefold()
 
 
-def _find_child_by_offer(db: Session, parent_id: int, offer: str):
+def _offer_name_aliases(offer: str) -> set[str]:
+    """Normalise Acquisition ↔ Aquisition (typo DB) ↔ achat."""
     needle = _norm_offer(offer)
+    if needle in {"acquisition", "aquisition", "achat"}:
+        return {"acquisition", "aquisition", "achat"}
+    if needle == "location":
+        return {"location"}
+    return {needle} if needle else set()
+
+
+def _find_child_by_offer(db: Session, parent_id: int, offer: str):
+    needles = _offer_name_aliases(offer)
+    if not needles:
+        return None
     for child in buyer_repo.list_active_catalog_children(db, parent_id):
-        if _norm_offer(child.name or "") == needle:
+        if _norm_offer(child.name or "") in needles:
             return child
     return None
 
@@ -1223,19 +1721,24 @@ def _cheapest_product_meta(
 ) -> tuple[float, str, str | None, int, str | None]:
     """Retourne (min_price, currency, description, product_count, min_dimensions_label)."""
     rows = _catalog_product_rows(db, catalog_id)
-    min_price: float | None = None
-    currency = "EUR"
-    description: str | None = None
-    count = 0
+    products = []
     seen: set[int] = set()
-    smallest_key: tuple[float, float, float, float] | None = None
-    min_dimensions_label: str | None = None
     for product, _company, _cat in rows:
         if product.id in seen:
             continue
         seen.add(product.id)
-        count += 1
-        latest = product_price_repo.get_latest_price(db, product.id)
+        products.append(product)
+    if not products:
+        return 0.0, "EUR", None, 0, None
+
+    mandatory, free, prices = _load_product_attr_bundle(db, [p.id for p in products])
+    min_price: float | None = None
+    currency = "EUR"
+    description: str | None = None
+    smallest_key: tuple[float, float, float, float] | None = None
+    min_dimensions_label: str | None = None
+    for product in products:
+        latest = prices.get(product.id)
         price = float(latest.price) if latest else 0.0
         cur = latest.currency if latest else "EUR"
         if min_price is None or price < min_price:
@@ -1243,13 +1746,13 @@ def _cheapest_product_meta(
             currency = cur
             description = _product_description(db, product)
 
-        dims = _product_dimensions(db, product.id)
-        attrs = _product_attr_map(db, product.id)
+        dims = _dims_from_attr_rows(mandatory.get(product.id, []), free.get(product.id, []))
+        attrs = _attr_map_from_free(free.get(product.id, []))
         key = _dims_sort_key(attrs, dims)
         if smallest_key is None or key < smallest_key:
             smallest_key = key
             min_dimensions_label = _dimensions_label_from_product(attrs, dims)
-    return (min_price or 0.0), currency, description, count, min_dimensions_label
+    return (min_price or 0.0), currency, description, len(products), min_dimensions_label
 
 
 def list_totem_families(
@@ -1329,10 +1832,23 @@ def list_totem_families(
                         min_price = p
                         currency = c
                         description = d
-                    # Reprendre le plus petit produit parmi les feuilles
-                    for product, _company, _cat in _catalog_product_rows(db, lid):
-                        dims = _product_dimensions(db, product.id)
-                        attrs = _product_attr_map(db, product.id)
+                    # Plus petit produit (dims) — une passe batchée par feuille
+                    leaf_rows = _catalog_product_rows(db, lid)
+                    leaf_pids = []
+                    leaf_seen: set[int] = set()
+                    for product, _company, _cat in leaf_rows:
+                        if product.id in leaf_seen:
+                            continue
+                        leaf_seen.add(product.id)
+                        leaf_pids.append(product.id)
+                    leaf_mand, leaf_free, _leaf_prices = _load_product_attr_bundle(
+                        db, leaf_pids
+                    )
+                    for pid in leaf_pids:
+                        dims = _dims_from_attr_rows(
+                            leaf_mand.get(pid, []), leaf_free.get(pid, [])
+                        )
+                        attrs = _attr_map_from_free(leaf_free.get(pid, []))
                         key = _dims_sort_key(attrs, dims)
                         if best_dims_key is None or key < best_dims_key:
                             best_dims_key = key
@@ -1393,7 +1909,6 @@ def list_totem_family_products(
                 "invalid_catalog",
                 f"Pas de produits pour l'offre « {offer} » sur cette famille.",
             )
-        # Si pas d'enfant Offer, traiter family comme feuille
         children = buyer_repo.list_active_catalog_children(db, family.id)
         if children:
             raise ClientPortalError(
@@ -1403,15 +1918,24 @@ def list_totem_family_products(
         leaf = family
 
     rows = _catalog_product_rows(db, leaf.id)
-    products: list[TotemProductOut] = []
+    products_raw = []
     seen: set[int] = set()
     for product, _company, _cat in rows:
         if product.id in seen:
             continue
         seen.add(product.id)
-        latest = product_price_repo.get_latest_price(db, product.id)
-        dims = _product_dimensions(db, product.id)
-        attrs = _product_attr_map(db, product.id)
+        products_raw.append(product)
+
+    mandatory, free, prices = _load_product_attr_bundle(
+        db, [p.id for p in products_raw]
+    )
+    products: list[TotemProductOut] = []
+    for product in products_raw:
+        latest = prices.get(product.id)
+        dims = _dims_from_attr_rows(
+            mandatory.get(product.id, []), free.get(product.id, [])
+        )
+        attrs = _attr_map_from_free(free.get(product.id, []))
         products.append(
             TotemProductOut(
                 product_id=product.id,
@@ -1421,7 +1945,9 @@ def list_totem_family_products(
                 currency=latest.currency if latest else "EUR",
                 dimensions_label=_dimensions_label_from_product(attrs, dims),
                 dimensions=dims,
-                poids=_product_weight_kg(db, product.id),
+                poids=_weight_from_attr_rows(
+                    mandatory.get(product.id, []), free.get(product.id, [])
+                ),
                 attributes=attrs,
             )
         )
@@ -1467,6 +1993,7 @@ def get_totem_product_detail(db: Session, product_id: int) -> TotemProductDetail
             fiche_available = fiche_key.casefold() in keys
 
     company = db.get(Company, product.company_tva_intra_com)
+    origin_zip, origin_city, origin_address_id = resolve_product_origin_zip(db, product)
 
     return TotemProductDetailOut(
         product_id=product.id,
@@ -1486,4 +2013,7 @@ def get_totem_product_detail(db: Session, product_id: int) -> TotemProductDetail
         fiche_available=fiche_available,
         company_name=company.company_name if company else None,
         company_tva=product.company_tva_intra_com,
+        company_zip=origin_zip,
+        company_city=origin_city,
+        origin_address_id=origin_address_id,
     )
