@@ -148,6 +148,8 @@ class MassifProductOut(BaseModel):
     catalog_name: str | None = None
     mandatory_attributes: list[MandatoryAttributeValueOut] = Field(default_factory=list)
     free_attributes: list[ProductAttributeOut] = Field(default_factory=list)
+    typology_paths: list[list[str]] = Field(default_factory=list)
+    lestage_paths: list[list[str]] = Field(default_factory=list)
 
 
 class MassifProductsResponse(BaseModel):

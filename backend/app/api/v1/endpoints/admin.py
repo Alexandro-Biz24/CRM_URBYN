@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.admin_deps import require_admin
@@ -16,9 +17,14 @@ from app.schemas.admin import (
     CatalogCsvImportMode,
     CatalogCsvImportResult,
     CatalogProductAttributeOut,
+    SubscriptionsCsvImportResult,
+    SupplierOffersCsvImportResult,
 )
 from app.services import admin as admin_svc
 from app.services import catalog_csv_import as csv_import_svc
+from app.services import csv_export as csv_export_svc
+from app.services import subscriptions_csv_import as subscriptions_csv_import_svc
+from app.services import supplier_offers_csv_import as offers_csv_import_svc
 from app.services.admin import AdminError
 
 router = APIRouter()
@@ -81,10 +87,74 @@ def admin_catalog_tree(
 async def admin_import_catalog_csv(
     file: UploadFile = File(...),
     mode: CatalogCsvImportMode = Form(CatalogCsvImportMode.additive),
-    company_tva_intra_com: str = Form(""),
     db: Session = Depends(get_db),
     _: None = Depends(require_admin),
 ) -> CatalogCsvImportResult:
+    """CSV_ADMIN : arborescence + produits + offre URBANIZE."""
+    return await _run_csv_import(file, db, csv_import_svc.import_catalog_csv, mode)
+
+
+@router.post(
+    "/supplier-offers/import-csv",
+    response_model=SupplierOffersCsvImportResult,
+)
+async def admin_import_supplier_offers_csv(
+    file: UploadFile = File(...),
+    mode: CatalogCsvImportMode = Form(CatalogCsvImportMode.additive),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> SupplierOffersCsvImportResult:
+    """CSV_FOURNISSEUR : offres prix / coefficient / délai / QTY par fournisseur."""
+    return await _run_csv_import(file, db, offers_csv_import_svc.import_supplier_offers_csv, mode)
+
+
+@router.post(
+    "/subscriptions/import-csv",
+    response_model=SubscriptionsCsvImportResult,
+)
+async def admin_import_subscriptions_csv(
+    file: UploadFile = File(...),
+    mode: CatalogCsvImportMode = Form(CatalogCsvImportMode.additive),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> SubscriptionsCsvImportResult:
+    """CSV_ABONNEMENT : statut d'abonnement par fournisseur."""
+    return await _run_csv_import(file, db, subscriptions_csv_import_svc.import_subscriptions_csv, mode)
+
+
+def _csv_attachment(content: bytes, filename: str) -> Response:
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/supplier-offers/export-csv")
+def admin_export_supplier_offers_csv(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> Response:
+    """CSV_FOURNISSEUR à jour : offre courante de chaque fournisseur et produit."""
+    return _csv_attachment(
+        csv_export_svc.export_supplier_offers_csv(db),
+        "CSV_FOURNISSEUR.csv",
+    )
+
+
+@router.get("/subscriptions/export-csv")
+def admin_export_subscriptions_csv(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> Response:
+    """CSV_ABONNEMENT à jour : statut de chaque société liée à une offre ou un abonnement."""
+    return _csv_attachment(
+        csv_export_svc.export_subscriptions_csv(db),
+        "CSV_ABONNEMENT.csv",
+    )
+
+
+async def _run_csv_import(file: UploadFile, db: Session, importer, mode: CatalogCsvImportMode):
     raw = await file.read()
     if not raw:
         raise HTTPException(
@@ -92,12 +162,7 @@ async def admin_import_catalog_csv(
             detail={"code": "empty_file", "message": "Fichier vide."},
         )
     try:
-        return csv_import_svc.import_catalog_csv(
-            db,
-            content=raw,
-            mode=mode,
-            company_tva_intra_com=company_tva_intra_com or None,
-        )
+        return importer(db, content=raw, mode=mode)
     except AdminError as exc:
         db.rollback()
         raise _http_error(exc) from exc

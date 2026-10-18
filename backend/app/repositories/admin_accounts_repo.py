@@ -222,6 +222,7 @@ def _company_list_row(db: Session, company: Company) -> dict:
         "user_count": user_count,
         "product_count": product_count,
         "is_verified": company.is_verified,
+        "abonne": False,
         "created_at": _dt_iso(company.created_at),
     }
 

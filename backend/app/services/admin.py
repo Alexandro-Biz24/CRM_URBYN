@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.repositories import admin_catalog_repo as repo
 from app.repositories import product_price_repo
+from app.repositories import supplier_offers_repo as offers_repo
 from app.repositories import supplier_portal_repo as portal_repo
 from app.schemas.admin import (
     AdminAttributeDefinitionOut,
@@ -19,6 +20,7 @@ from app.schemas.admin import (
     AdminLoginResponse,
     AdminProductAttributeOut,
     AdminProductDetail,
+    AdminProductSupplierOffer,
     CatalogAttributeMandatoryUpdate,
     CatalogProductAttributeOut,
 )
@@ -137,18 +139,31 @@ def list_catalog_products(db: Session, catalog_id: int) -> list[AdminCatalogProd
     if c is None:
         raise AdminError("not_found", "Catalogue introuvable.")
     rows = repo.list_catalog_products(db, catalog_id)
+    product_ids = [product.id for product, _ in rows]
+    offers_by_product: dict[int, list] = {}
+    for offer in offers_repo.latest_offers_for_products(db, product_ids):
+        offers_by_product.setdefault(offer.product_id, []).append(offer)
     result: list[AdminCatalogProductEntry] = []
     for product, company in rows:
-        latest = product_price_repo.get_latest_price(db, product.id)
+        offers = offers_by_product.get(product.id, [])
+        if offers:
+            cheapest = min(offers, key=lambda o: float(o.price))
+            price = float(cheapest.price)
+            currency = cheapest.currency
+        else:
+            latest = product_price_repo.get_latest_price(db, product.id)
+            price = float(latest.price) if latest else 0.0
+            currency = latest.currency if latest else "EUR"
         result.append(
             AdminCatalogProductEntry(
                 product_id=product.id,
                 admin_sku=product.admin_sku,
                 product_name=product.product_name,
                 company_name=company.company_name,
-                price=float(latest.price) if latest else 0.0,
-                currency=latest.currency if latest else "EUR",
+                price=price,
+                currency=currency,
                 is_active=product.is_active,
+                supplier_count=len(offers),
             )
         )
     return result
@@ -180,6 +195,32 @@ def get_product_detail(db: Session, product_id: int) -> AdminProductDetail:
         AdminProductAttributeOut(name=a.name, value=a.value)
         for a in sorted(product.attributes, key=lambda x: x.name.lower())
     ]
+    subscriptions = offers_repo.subscription_map(db)
+    offers: list[AdminProductSupplierOffer] = []
+    for offer in offers_repo.latest_offers_for_products(db, [product.id]):
+        seller = repo.get_company(db, offer.company_tva_intra_com)
+        offers.append(
+            AdminProductSupplierOffer(
+                company_name=seller.company_name if seller else offer.company_tva_intra_com,
+                company_tva=offer.company_tva_intra_com,
+                price=float(offer.price),
+                urbyn_marge=float(offer.urbyn_marge),
+                delai_jours=offer.delai_jours,
+                stock=offer.stock,
+                currency=offer.currency,
+                recorded_at=offer.recorded_at.isoformat() if offer.recorded_at else "",
+                source=offer.source,
+                abonne=bool(subscriptions.get(offer.company_tva_intra_com, False)),
+            )
+        )
+    offers.sort(key=lambda o: o.company_name.lower())
+    if offers:
+        cheapest = min(offers, key=lambda o: o.price)
+        display_price = cheapest.price
+        display_currency = cheapest.currency
+    else:
+        display_price = float(latest.price) if latest else 0.0
+        display_currency = latest.currency if latest else "EUR"
     return AdminProductDetail(
         id=product.id,
         admin_sku=product.admin_sku,
@@ -187,12 +228,13 @@ def get_product_detail(db: Session, product_id: int) -> AdminProductDetail:
         product_name=product.product_name,
         company_name=company.company_name if company else "—",
         company_tva=product.company_tva_intra_com,
-        price=float(latest.price) if latest else 0.0,
-        currency=latest.currency if latest else "EUR",
+        price=display_price,
+        currency=display_currency,
         is_active=product.is_active,
         catalog_names=repo.list_product_catalog_names(db, product.id),
         mandatory_attributes=mandatory,
         free_attributes=free_attrs,
+        supplier_offers=offers,
     )
 
 

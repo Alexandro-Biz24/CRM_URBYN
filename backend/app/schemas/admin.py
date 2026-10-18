@@ -25,8 +25,35 @@ class CatalogCsvImportResult(BaseModel):
     catalogs_created: int = 0
     catalogs_cleared: int = 0
     links_created: int = 0
+    offers_written: int = 0
     rows_processed: int = 0
     errors: list[CatalogCsvImportRowError] = Field(default_factory=list)
+
+
+class SupplierOffersCsvImportResult(BaseModel):
+    """CSV_FOURNISSEUR — rien n'est écrit si `errors` n'est pas vide."""
+
+    mode: CatalogCsvImportMode
+    applied: bool = False
+    rows_processed: int = 0
+    offers_written: int = 0
+    offers_unchanged: int = 0
+    offers_deleted: int = 0
+    suppliers: list[str] = Field(default_factory=list)
+    errors: list[CatalogCsvImportRowError] = Field(default_factory=list)
+
+
+class SubscriptionsCsvImportResult(BaseModel):
+    """CSV_ABONNEMENT — rien n'est écrit si `errors` n'est pas vide."""
+
+    mode: CatalogCsvImportMode
+    applied: bool = False
+    rows_processed: int = 0
+    subscriptions_created: int = 0
+    subscriptions_updated: int = 0
+    subscriptions_deleted: int = 0
+    errors: list[CatalogCsvImportRowError] = Field(default_factory=list)
+    warnings: list[CatalogCsvImportRowError] = Field(default_factory=list)
 
 
 class CatalogProductAttributeOut(BaseModel):
@@ -122,6 +149,7 @@ class AdminCatalogProductEntry(BaseModel):
     price: float
     currency: str
     is_active: bool
+    supplier_count: int = 0
 
 
 class AdminProductAttributeOut(BaseModel):
@@ -130,6 +158,19 @@ class AdminProductAttributeOut(BaseModel):
     catalog_id: int | None = None
     catalog_name: str | None = None
     definition_id: int | None = None
+
+
+class AdminProductSupplierOffer(BaseModel):
+    company_name: str
+    company_tva: str
+    price: float
+    urbyn_marge: float
+    delai_jours: int
+    stock: int
+    currency: str
+    recorded_at: str
+    source: str
+    abonne: bool
 
 
 class AdminProductDetail(BaseModel):
@@ -145,3 +186,4 @@ class AdminProductDetail(BaseModel):
     catalog_names: list[str] = []
     mandatory_attributes: list[AdminProductAttributeOut] = []
     free_attributes: list[AdminProductAttributeOut] = []
+    supplier_offers: list[AdminProductSupplierOffer] = []

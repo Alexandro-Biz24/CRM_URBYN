@@ -49,6 +49,7 @@ class AdminCompanyListItem(BaseModel):
     user_count: int
     product_count: int
     is_verified: bool
+    abonne: bool = False
     created_at: str
 
 
@@ -89,6 +90,7 @@ class AdminCompanyDetail(BaseModel):
     vat_rate: float | None
     is_verified: bool
     cgv_accepted: bool
+    abonne: bool = False
     created_at: str
     updated_at: str
     addresses: list[AdminAddressOut]

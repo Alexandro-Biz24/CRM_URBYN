@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.repositories import admin_accounts_repo as repo
+from app.repositories import supplier_offers_repo as offers_repo
 from app.schemas.admin_accounts import (
     AdminAddressOut,
     AdminCompaniesListResponse,
@@ -74,9 +75,14 @@ def delete_user(db: Session, user_id: int) -> None:
 
 def list_companies(db: Session) -> AdminCompaniesListResponse:
     suppliers, clients = repo.list_companies_by_side(db)
+    subscriptions = offers_repo.subscription_map(db)
+
+    def _with_sub(row: dict) -> dict:
+        return {**row, "abonne": bool(subscriptions.get(row["tva_intra_com"], False))}
+
     return AdminCompaniesListResponse(
-        suppliers=[AdminCompanyListItem(**c) for c in suppliers],
-        clients=[AdminCompanyListItem(**c) for c in clients],
+        suppliers=[AdminCompanyListItem(**_with_sub(c)) for c in suppliers],
+        clients=[AdminCompanyListItem(**_with_sub(c)) for c in clients],
     )
 
 
@@ -99,6 +105,7 @@ def get_company(db: Session, tva: str) -> AdminCompanyDetail:
                 role=u.role.role_name if u.role else None,
             )
         )
+    sub = offers_repo.get_subscription(db, company.tva_intra_com)
     return AdminCompanyDetail(
         tva_intra_com=company.tva_intra_com,
         company_name=company.company_name,
@@ -112,6 +119,7 @@ def get_company(db: Session, tva: str) -> AdminCompanyDetail:
         vat_rate=float(company.vat_rate) if company.vat_rate is not None else None,
         is_verified=company.is_verified,
         cgv_accepted=company.cgv_accepted,
+        abonne=bool(sub.abonne) if sub is not None else False,
         created_at=company.created_at.isoformat(),
         updated_at=company.updated_at.isoformat(),
         addresses=[

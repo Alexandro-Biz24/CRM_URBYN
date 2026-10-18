@@ -106,6 +106,71 @@ class ProductCatalogGroupsResponse(BaseModel):
     groups: list[ProductCatalogGroup] = Field(default_factory=list)
 
 
+class SupplierOfferOut(BaseModel):
+    product_id: int
+    product_name: str
+    client_sku: str
+    catalog_label: str
+    price: float
+    currency: str
+    delai_jours: int
+
+
+class SupplierOfferGroup(BaseModel):
+    catalog_label: str
+    catalog_ids: list[int] = Field(default_factory=list)
+    catalog_paths: list[str] = Field(default_factory=list)
+    address_id: int | None = None
+    offers: list[SupplierOfferOut] = Field(default_factory=list)
+
+
+class SupplierCatalogAddressWrite(BaseModel):
+    session: PortalSession
+    address_id: int
+    catalog_ids: list[int] = Field(..., min_length=1)
+
+
+class SupplierOfferGroupsResponse(BaseModel):
+    groups: list[SupplierOfferGroup] = Field(default_factory=list)
+
+
+class SupplierCatalogProductHit(BaseModel):
+    product_id: int
+    product_name: str
+    client_sku: str
+    already_offered: bool
+
+
+class SupplierCatalogSearchGroup(BaseModel):
+    catalog_id: int
+    catalog_label: str
+    products: list[SupplierCatalogProductHit] = Field(default_factory=list)
+
+
+class SupplierOfferWrite(BaseModel):
+    session: PortalSession
+    product_id: int
+    price: float = Field(..., ge=0)
+    delai_jours: int = Field(..., ge=0)
+
+
+class SupplierSectionOffer(BaseModel):
+    product_id: int
+    price: float = Field(..., ge=0)
+    delai_jours: int = Field(..., ge=0)
+
+
+class SupplierSectionAddress(BaseModel):
+    address_id: int
+    catalog_ids: list[int] = Field(default_factory=list)
+
+
+class SupplierSectionSave(BaseModel):
+    session: PortalSession
+    offers: list[SupplierSectionOffer] = Field(default_factory=list)
+    addresses: list[SupplierSectionAddress] = Field(default_factory=list)
+
+
 class ProductAttributOut(BaseModel):
     id: int
     name: str

@@ -5,7 +5,12 @@ from typing import Any
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from decimal import Decimal
+
 from app.models import ClientOrder, ClientOrderItem, Company, Product, User
+from app.repositories import supplier_offers_repo as offers_repo
+from app.services.pricing import URBANIZE_TVA, CartLineIn, QuoteContext, quote_lines
+from app.services.pricing_math import effective_unit_price
 from app.repositories import supplier_portal_repo as supplier_repo
 from app.schemas.client_orders import (
     ClientOrderCardOut,
@@ -84,6 +89,46 @@ def _resolve_supplier(
     return tva, name
 
 
+def _frozen_unit(db: Session, product_id: int | None, supplier_tva: str | None, fallback: float) -> float:
+    if product_id is None or not supplier_tva:
+        return round(fallback, 2)
+    offer = offers_repo.latest_offer(db, supplier_tva, product_id)
+    if offer is None:
+        return round(fallback, 2)
+    sub = offers_repo.get_subscription(db, supplier_tva)
+    unit = effective_unit_price(
+        Decimal(str(offer.price)),
+        Decimal(str(offer.urbyn_marge)),
+        bool(sub and sub.abonne),
+    )
+    return float(unit)
+
+
+def _quote_for_order(db: Session, payload: ClientOrderCreate, lines: list[CartLineIn]) -> dict:
+    address = payload.deliveryAddress
+    ctx = QuoteContext(
+        postal_code=(address.postalCode if address and address.postalCode else "") or "",
+        city=(address.city if address and address.city else "") or "",
+        country="FR",
+        massif_transport=payload.massifTransport,
+        massif_dechargement=payload.massifDechargement,
+        massif_installation=payload.massifInstallation,
+        totem_transport=payload.totemTransport,
+        totem_installation=payload.totemInstallation,
+    )
+    if not lines:
+        return {
+            "shipping": 0.0,
+            "dechargement": 0.0,
+            "installation": 0.0,
+            "totem_installation": 0.0,
+            "discount": 0.0,
+            "shipping_by_supplier": {},
+            "discount_by_supplier": {},
+        }
+    return quote_lines(db, lines, ctx)
+
+
 def create_client_order(db: Session, payload: ClientOrderCreate) -> ClientOrderDetailOut:
     user = _require_client_user(db, payload.session)
 
@@ -91,21 +136,58 @@ def create_client_order(db: Session, payload: ClientOrderCreate) -> ClientOrderD
     if not items_in:
         raise ClientPortalError("empty_order", "Aucun article à enregistrer.")
 
-    subtotal = round(sum(float(i.price) * int(i.quantity) for i in items_in), 2)
-    shipping = round(float(payload.shippingCost or 0), 2)
-    install = round(
-        float(payload.massifInstallFee or 0) + float(payload.totemInstallFee or 0), 2
-    )
-    total_ht = round(
-        float(payload.totalHT)
-        if payload.totalHT is not None
-        else subtotal + shipping + install,
+    priced: list[dict[str, Any]] = []
+    quote_lines_in: list[CartLineIn] = []
+    for item in items_in:
+        details = dict(item.details or {})
+        pid = _product_id(item)
+        tva, supplier_name = _resolve_supplier(db, details, pid)
+        item_type = _item_type(item)
+        qty = max(1, int(item.quantity))
+        if item_type != "panels" and pid and tva:
+            quote_lines_in.append(CartLineIn(pid, tva, qty))
+        unit = _frozen_unit(db, pid, tva, float(item.price))
+        if tva and "companyTva" not in details:
+            details["companyTva"] = tva
+        if supplier_name and "companyName" not in details:
+            details["companyName"] = supplier_name
+        priced.append(
+            {
+                "product_id": pid,
+                "item_type": item_type,
+                "name": (item.name or "Produit").strip()[:512],
+                "quantity": qty,
+                "unit": unit,
+                "line": round(unit * qty, 2),
+                "tva": tva,
+                "supplier_name": supplier_name,
+                "details": details or None,
+            }
+        )
+
+    quoted = _quote_for_order(db, payload, quote_lines_in)
+    subtotal = round(sum(row["line"] for row in priced), 2)
+    discount = round(float(quoted.get("discount") or 0), 2)
+    shipping = round(float(quoted.get("shipping") or 0), 2)
+    services = round(
+        float(quoted.get("dechargement") or 0)
+        + float(quoted.get("installation") or 0)
+        + float(quoted.get("totem_installation") or 0),
         2,
     )
+    total_ht = round(subtotal - discount + shipping + services, 2)
     tax = round(total_ht * 0.2, 2)
     total_ttc = round(total_ht * 1.2, 2)
 
     delivery = payload.deliveryAddress.model_dump() if payload.deliveryAddress else None
+    breakdown = {
+        "by_supplier": quoted.get("shipping_by_supplier") or {},
+        "discount_by_supplier": quoted.get("discount_by_supplier") or {},
+        "dechargement": float(quoted.get("dechargement") or 0),
+        "installation": float(quoted.get("installation") or 0),
+        "totem_installation": float(quoted.get("totem_installation") or 0),
+        "discount": discount,
+    }
 
     order = ClientOrder(
         buyer_user_id=user.id,
@@ -115,10 +197,10 @@ def create_client_order(db: Session, payload: ClientOrderCreate) -> ClientOrderD
         contact_email=payload.contact.email or user.email,
         contact_phone=payload.contact.phone or None,
         delivery_address=delivery,
-        shipping_breakdown=payload.massifShipping,
-        subtotal_ht=subtotal,
+        shipping_breakdown=breakdown,
+        subtotal_ht=round(subtotal - discount, 2),
         shipping_amount=shipping,
-        install_amount=install,
+        install_amount=services,
         tax_amount=tax,
         total_ht=total_ht,
         total_ttc=total_ttc,
@@ -128,29 +210,19 @@ def create_client_order(db: Session, payload: ClientOrderCreate) -> ClientOrderD
     db.add(order)
     db.flush()
 
-    for item in items_in:
-        details = dict(item.details or {})
-        pid = _product_id(item)
-        tva, supplier_name = _resolve_supplier(db, details, pid)
-        if tva and "companyTva" not in details:
-            details["companyTva"] = tva
-        if supplier_name and "companyName" not in details:
-            details["companyName"] = supplier_name
-        qty = max(1, int(item.quantity))
-        unit = round(float(item.price), 2)
-        line = round(unit * qty, 2)
+    for row in priced:
         db.add(
             ClientOrderItem(
                 order_id=order.id,
-                product_id=pid,
-                item_type=_item_type(item),
-                name=(item.name or "Produit").strip()[:512],
-                quantity=qty,
-                unit_price_ht=unit,
-                line_total_ht=line,
-                supplier_company_tva=tva,
-                supplier_name=supplier_name,
-                details=details or None,
+                product_id=row["product_id"],
+                item_type=row["item_type"],
+                name=row["name"],
+                quantity=row["quantity"],
+                unit_price_ht=row["unit"],
+                line_total_ht=row["line"],
+                supplier_company_tva=row["tva"],
+                supplier_name=row["supplier_name"],
+                details=row["details"],
             )
         )
 
@@ -253,6 +325,24 @@ def get_buyer_order_detail(
     )
 
 
+def _supplier_amounts(order: ClientOrder, tva: str) -> tuple[list[ClientOrderItem], float, float, float, float]:
+    mine = [it for it in order.items if it.supplier_company_tva == tva]
+    sub = round(sum(float(it.line_total_ht) for it in mine), 2)
+    breakdown = order.shipping_breakdown if isinstance(order.shipping_breakdown, dict) else {}
+    shipping = round(float((breakdown.get("by_supplier") or {}).get(tva) or 0), 2)
+    discount = round(float((breakdown.get("discount_by_supplier") or {}).get(tva) or 0), 2)
+    services = 0.0
+    if tva == URBANIZE_TVA:
+        services = round(
+            float(breakdown.get("dechargement") or 0)
+            + float(breakdown.get("installation") or 0)
+            + float(breakdown.get("totem_installation") or 0),
+            2,
+        )
+    total = round(sub - discount + shipping + services, 2)
+    return mine, sub, shipping, services, total
+
+
 def list_supplier_leads(db: Session, session: PortalSession) -> SupplierLeadListOut:
     portal = get_supplier_context(db, session)
     tva = portal.company_id
@@ -276,10 +366,9 @@ def list_supplier_leads(db: Session, session: PortalSession) -> SupplierLeadList
 
     leads: list[SupplierLeadCardOut] = []
     for order in orders:
-        mine = [it for it in order.items if it.supplier_company_tva == tva]
+        mine, sub, shipping, _services, total = _supplier_amounts(order, tva)
         if not mine:
             continue
-        sub = round(sum(float(it.line_total_ht) for it in mine), 2)
         buyer_label = None
         if order.contact_first_name or order.contact_last_name:
             buyer_label = " ".join(
@@ -296,8 +385,9 @@ def list_supplier_leads(db: Session, session: PortalSession) -> SupplierLeadList
                 buyer_label=buyer_label or order.contact_email,
                 delivery_city=city,
                 items_count=len(mine),
-                supplier_total_ht=sub,
-                supplier_total_ttc=round(sub * 1.2, 2),
+                supplier_shipping_ht=shipping,
+                supplier_total_ht=total,
+                supplier_total_ttc=round(total * 1.2, 2),
                 currency=order.currency,
                 preview_names=[it.name for it in mine[:3]],
             )
@@ -317,13 +407,11 @@ def get_supplier_lead_detail(
     )
     if order is None:
         raise SupplierPortalError("not_found", "Lead introuvable.")
-    mine = [it for it in order.items if it.supplier_company_tva == tva]
+    mine, sub, shipping, services, total = _supplier_amounts(order, tva)
     if not mine:
         raise SupplierPortalError(
             "not_found", "Aucun produit de votre société sur cette commande."
         )
-
-    sub = round(sum(float(it.line_total_ht) for it in mine), 2)
     buyer_label = None
     if order.contact_first_name or order.contact_last_name:
         buyer_label = " ".join(
@@ -339,7 +427,9 @@ def get_supplier_lead_detail(
         delivery_address=order.delivery_address,
         currency=order.currency,
         supplier_subtotal_ht=sub,
-        supplier_total_ht=sub,
-        supplier_total_ttc=round(sub * 1.2, 2),
+        supplier_shipping_ht=shipping,
+        supplier_services_ht=services,
+        supplier_total_ht=total,
+        supplier_total_ttc=round(total * 1.2, 2),
         items=[_item_out(it) for it in mine],
     )
