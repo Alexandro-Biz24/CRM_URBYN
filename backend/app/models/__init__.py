@@ -6,6 +6,7 @@ from .email_verification_code import EmailVerificationCode
 from .user_profile import UserProfile
 from .company import Company
 from .company_user import CompanyUser
+from .company_subscription import CompanySubscription
 from .address import Address
 from .address_catalog import AddressCatalog
 from .typology import Typologie
@@ -21,6 +22,8 @@ from .catalog_attribute_definition import CatalogAttributeDefinition
 from .product import Product
 from .product_translation import ProductTranslation
 from .product_price_history import ProductPriceHistory
+from .supplier_product_price import SupplierProductPrice
+from .geo_cache import GeocodeCache, RoadDistanceCache
 from .product_attribut import ProductAttribut
 from .product_mandatory_attribute_value import ProductMandatoryAttributeValue
 

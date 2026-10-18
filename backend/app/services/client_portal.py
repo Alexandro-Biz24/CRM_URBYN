@@ -918,6 +918,89 @@ def list_massif_available_weight_bands(
     )
 
 
+def _catalog_path_names(index: dict[int, Catalog], catalog_id: int) -> list[str]:
+    parts: list[str] = []
+    seen: set[int] = set()
+    current: int | None = catalog_id
+    while current is not None and current not in seen:
+        seen.add(current)
+        catalog = index.get(current)
+        if catalog is None or not catalog.is_active:
+            return []
+        if catalog.name and catalog.name.strip():
+            parts.append(catalog.name.strip())
+        parent = catalog.parent_id
+        if parent is None or parent == current:
+            break
+        current = parent
+    parts.reverse()
+    return parts
+
+
+def _relative_filter_path(
+    names: list[str],
+    *,
+    root: str,
+    offer: str,
+    middle: str | None,
+) -> list[str] | None:
+    """Chemin après la racine demandée. None si le catalogue n'est pas sous cette racine."""
+    if len(names) < 2:
+        return None
+    if _norm_offer(names[0]) != root:
+        return None
+    if _norm_offer(names[1]) not in _offer_name_aliases(offer):
+        return None
+    rest = names[2:]
+    if middle is not None:
+        if not rest or _norm_offer(rest[0]) != middle:
+            return None
+        rest = rest[1:]
+    if not rest:
+        return None
+    return rest
+
+
+def _extra_catalog_paths(
+    db: Session,
+    product_ids: list[int],
+    offer: str,
+) -> dict[int, tuple[list[list[str]], list[list[str]]]]:
+    """Chemins relatifs sous Massif/{offre}/Massif_Typology et Lestage/{offre}."""
+    empty: dict[int, tuple[list[list[str]], list[list[str]]]] = {
+        pid: ([], []) for pid in product_ids
+    }
+    if not product_ids:
+        return empty
+    index = {catalog.id: catalog for catalog in db.scalars(select(Catalog)).all()}
+    links = db.execute(
+        select(CatalogProduct.product_id, CatalogProduct.catalog_id).where(
+            CatalogProduct.product_id.in_(product_ids)
+        )
+    ).all()
+    seen_typology: dict[int, set[tuple[str, ...]]] = {pid: set() for pid in product_ids}
+    seen_lestage: dict[int, set[tuple[str, ...]]] = {pid: set() for pid in product_ids}
+    for product_id, catalog_id in links:
+        if product_id not in empty:
+            continue
+        names = _catalog_path_names(index, catalog_id)
+        typology = _relative_filter_path(
+            names, root="massif", offer=offer, middle="massif typology"
+        )
+        lestage = _relative_filter_path(names, root="lestage", offer=offer, middle=None)
+        if typology is not None:
+            key = tuple(typology)
+            if key not in seen_typology[product_id]:
+                seen_typology[product_id].add(key)
+                empty[product_id][0].append(typology)
+        if lestage is not None:
+            key = tuple(lestage)
+            if key not in seen_lestage[product_id]:
+                seen_lestage[product_id].add(key)
+                empty[product_id][1].append(lestage)
+    return empty
+
+
 def _resolve_massif_weight_range(payload: MassifProductsRequest) -> tuple[float, float]:
     if payload.poids is not None:
         return payload.poids, payload.poids
@@ -969,6 +1052,7 @@ def list_massif_products(
         row_meta[product.id] = (company, cat)
 
     mandatory, free, prices = _load_product_attr_bundle(db, [p.id for p in unique])
+    extra_paths = _extra_catalog_paths(db, [p.id for p in unique], offer)
     origin_cache: dict[int, tuple[str, str | None, int | None]] = {}
 
     products: list[MassifProductOut] = []
@@ -980,6 +1064,7 @@ def list_massif_products(
             continue
         company, cat = row_meta[product.id]
         latest = prices.get(product.id)
+        typology_paths, lestage_paths = extra_paths.get(product.id, ([], []))
         free_attrs = [
             ProductAttributeOut(id=a.id, name=a.name, value=a.value)
             for a in free.get(product.id, [])
@@ -1014,6 +1099,8 @@ def list_massif_products(
                     catalog_id=payload.catalog_id,
                 ),
                 free_attributes=free_attrs,
+                typology_paths=typology_paths,
+                lestage_paths=lestage_paths,
             )
         )
 

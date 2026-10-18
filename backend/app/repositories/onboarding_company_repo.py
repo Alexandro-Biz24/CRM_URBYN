@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Address, Company, CompanyUser
+from app.models.address import siege_social_label
 from app.schemas.onboarding_company import OnboardingAddressInput, OnboardingNewCompanyInput
 
 
@@ -87,6 +88,7 @@ def _create_address(
             state=addr.state.strip() if addr.state else None,
             country_code=(addr.country_code or "FR").upper()[:2],
             siret=addr.siret,
+            label=siege_social_label(addr.type),
             is_primary=is_primary or addr.is_primary,
         )
     )
