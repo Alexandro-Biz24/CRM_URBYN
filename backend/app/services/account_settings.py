@@ -235,6 +235,9 @@ def add_address(db: Session, payload: AccountAddressWrite) -> AccountProfileOut:
             "no_company", "Aucune société rattachée : impossible d'ajouter une adresse."
         )
     company_tva, _ = company
+    label = payload.label.strip()
+    if not label:
+        raise AccountSettingsError("label_required", "Le libellé de l'adresse est obligatoire.")
     if payload.is_primary:
         db.execute(
             update(Address)
@@ -244,7 +247,7 @@ def add_address(db: Session, payload: AccountAddressWrite) -> AccountProfileOut:
     addr = Address(
         company_tva_intra_com=company_tva,
         type=(payload.type or "delivery").strip()[:32],
-        label=(payload.label or payload.type or "Adresse").strip()[:120] or None,
+        label=label,
         street=payload.street,
         city=payload.city,
         zip_code=payload.zip_code,
@@ -277,11 +280,11 @@ def update_address(db: Session, payload: AccountAddressUpdate) -> AccountProfile
             .where(Address.company_tva_intra_com == company_tva)
             .values(is_primary=False)
         )
+    label = payload.label.strip()
+    if not label:
+        raise AccountSettingsError("label_required", "Le libellé de l'adresse est obligatoire.")
     addr.type = (payload.type or addr.type).strip()[:32]
-    if payload.label is not None:
-        addr.label = payload.label.strip()[:120] or None
-    elif not addr.label:
-        addr.label = addr.type
+    addr.label = label[:120]
     addr.street = payload.street
     addr.city = payload.city
     addr.zip_code = payload.zip_code

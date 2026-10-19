@@ -6,6 +6,16 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 
+def siege_social_label(addr_type: str | None) -> str | None:
+    """Libellé de l'adresse siège créée avec la société."""
+    folded = (addr_type or "").casefold()
+    for src, dst in (("è", "e"), ("é", "e"), ("ê", "e")):
+        folded = folded.replace(src, dst)
+    if "siege" in folded or folded == "headquarter":
+        return "Siège social"
+    return None
+
+
 class Address(Base):
     __tablename__ = "addresses"
 

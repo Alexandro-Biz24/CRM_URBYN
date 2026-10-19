@@ -7,6 +7,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
 from app.models import Address, Company, CompanyUser, Language, Role, User, UserProfile
+from app.models.address import siege_social_label
 from app.schemas.suppliers_v2 import (
     SupplierAccountCreateV2,
     SupplierAddressCreateV2,
@@ -113,6 +114,7 @@ def create_company_address(
         intra_com=address.intra_com,
         lat=address.lat,
         lng=address.lng,
+        label=siege_social_label(address.type),
         is_primary=address.is_primary,
     )
     db.add(db_address)

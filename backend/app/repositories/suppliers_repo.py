@@ -13,6 +13,7 @@ from app.models import (
     User,
     UserProfile,
 )
+from app.models.address import siege_social_label
 from app.schemas.suppliers import SupplierAccountCreate, SupplierAddressCreate
 
 ROLE_FOURNISSEUR = "Fournisseur"
@@ -126,6 +127,7 @@ def _create_address(
         intra_com=address.intra_communal,
         lat=None,
         lng=None,
+        label=siege_social_label(address.type),
         is_primary=address.is_primary,
     )
     db.add(db_address)

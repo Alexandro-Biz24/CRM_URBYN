@@ -3,6 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_db
 from app.schemas.supplier_portal import (
+    SupplierCatalogAddressWrite,
+    SupplierCatalogProductHit,
+    SupplierCatalogSearchGroup,
+    SupplierOfferGroupsResponse,
+    SupplierOfferOut,
+    SupplierOfferWrite,
+    SupplierSectionSave,
     CatalogAttributeDefinitionOut,
     CatalogOut,
     PortalContext,
@@ -15,6 +22,7 @@ from app.schemas.supplier_portal import (
     ProductOut,
     ProductWrite,
 )
+from app.services import supplier_offers_portal as offers_portal
 from app.services import supplier_portal as portal_svc
 from app.services.supplier_portal import PortalError
 
@@ -128,6 +136,97 @@ def portal_list_catalog_attribute_definitions(
     session = PortalSession(user_id=user_id, email=email)
     try:
         return portal_svc.list_catalog_attribute_definitions(db, session, catalog_id)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/offers", response_model=SupplierOfferGroupsResponse)
+def portal_list_offers(
+    user_id: int = Query(...),
+    email: str = Query(...),
+    db: Session = Depends(get_db),
+) -> SupplierOfferGroupsResponse:
+    session = PortalSession(user_id=user_id, email=email)
+    try:
+        return offers_portal.list_my_offers(db, session)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/offers/catalog-products", response_model=list[SupplierCatalogSearchGroup])
+def portal_search_catalog_products(
+    user_id: int = Query(...),
+    email: str = Query(...),
+    q: str = Query(""),
+    db: Session = Depends(get_db),
+) -> list[SupplierCatalogSearchGroup]:
+    session = PortalSession(user_id=user_id, email=email)
+    try:
+        return offers_portal.search_catalog_products(db, session, q)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get(
+    "/offers/catalogs/{catalog_id}/products",
+    response_model=list[SupplierCatalogProductHit],
+)
+def portal_catalog_offer_products(
+    catalog_id: int,
+    user_id: int = Query(...),
+    email: str = Query(...),
+    db: Session = Depends(get_db),
+) -> list[SupplierCatalogProductHit]:
+    session = PortalSession(user_id=user_id, email=email)
+    try:
+        return offers_portal.products_in_catalog(db, session, catalog_id)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post("/offers/catalog-address", status_code=status.HTTP_204_NO_CONTENT)
+def portal_assign_catalog_address(
+    payload: SupplierCatalogAddressWrite,
+    db: Session = Depends(get_db),
+) -> None:
+    try:
+        offers_portal.assign_catalogs_address(db, payload)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post("/offers/section", response_model=SupplierOfferGroupsResponse)
+def portal_save_section(
+    payload: SupplierSectionSave,
+    db: Session = Depends(get_db),
+) -> SupplierOfferGroupsResponse:
+    try:
+        return offers_portal.save_section(db, payload)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.delete("/offers/{product_id}", response_model=SupplierOfferGroupsResponse)
+def portal_withdraw_offer(
+    product_id: int,
+    user_id: int = Query(...),
+    email: str = Query(...),
+    db: Session = Depends(get_db),
+) -> SupplierOfferGroupsResponse:
+    session = PortalSession(user_id=user_id, email=email)
+    try:
+        return offers_portal.withdraw_offer(db, session, product_id)
+    except PortalError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post("/offers", response_model=SupplierOfferOut)
+def portal_save_offer(
+    payload: SupplierOfferWrite,
+    db: Session = Depends(get_db),
+) -> SupplierOfferOut:
+    try:
+        return offers_portal.save_offer(db, payload)
     except PortalError as exc:
         raise _http_error(exc) from exc
 

@@ -1,0 +1,205 @@
+Référence,Nom commercial,Description,Prix référence HT,Coefficient Urbanize,Unité,Urbyn,Nb de massif / palette,Passage Fourche,"Manille
+Nombre",Manille Type,Hauteur mât (maximale) en m,Largeur (cm),Longueur (cm),Hauteur (cm),Poids (kg),Volume (m3),Fournisseur,Délais,Fichier source
+LEST-130,"Massif cubique 3,7t - Tige D24 - Entraxe 300",Hauteur tige: 100 mm,"548,96","1,33",unité.s,"[Massif/Aquisition/Lestage/3700 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Fourche]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/300x300]",0,OUI,2,"2,5t",,130,130,105,3700,"1,775",URBANIZE,7,Produits Lestés
+LEST-01-3,Massif cubique 2t Plein - Passage Fourche,"Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Fourche]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Plein]",0,OUI,2,"2,5t",10,100,100,100,2200,1,URBANIZE,7,Produits Lestés déclinaison
+LEST-01-2,Massif cubique 2t Réservation,"Réservation: 310/280mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","296,80","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Réservation]",1,NON,2,"2,5t",10,100,100,100,2000,1,URBANIZE,7,Produits Lestés déclinaison
+LEST-01-2,Massif cubique 2t Réservation,"Réservation: 310/280mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","35,00",1,Mois,"[Lestage/Location/2000 kg]
+[Massif/Location/Massif_Moyen_de_Levage/Manille]
+[Massif/Location/Massif_Type/Temporaire/Cubique]
+[Massif/Location/Massif_Typology/Réservation]",1,NON,2,"2,5t",10,100,100,100,2000,1,URBANIZE,7,Produits Lestés déclinaison
+,Massif cubique 2t Réservation - Passage Fourche,"Réservation: 310/280mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","296,80","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Fourche]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Réservation]",0,OUI,2,"2,5t",10,100,100,100,2000,1,URBANIZE,7,
+,Massif cubique 2t - Tige D18 - Entraxe 200,"Hauteur tige: 100 mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/200x200]",0,NON,2,"2,5t",10,100,100,100,1950,1,URBANIZE,7,Produits Lestés déclinaison
+,Massif cubique 2t - Tige D24 - Entraxe 200,"Hauteur tige: 100 mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/200x200]",0,NON,2,"2,5t",10,100,100,100,1950,1,URBANIZE,7,Produits Lestés déclinaison
+,Massif cubique 2t - Tige D22 - Entraxe 200,"Hauteur tige: 100 mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/200x200]",0,NON,2,"2,5t",10,100,100,100,1950,1,URBANIZE,7,
+,Massif cubique 2t - Tige D18 - Entraxe 200,"Hauteur tige: 100 mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/200x200]",0,NON,2,"2,5t",10,100,100,100,1950,1,URBANIZE,7,
+LEST-01-1,Massif cubique 2t - Tige D18 - Entraxe 300,"Hauteur tige: 100 mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/300x300]",0,NON,2,"2,5t",10,100,100,100,1950,1,URBANIZE,7,Produits Lestés déclinaison
+,Massif cubique 2t - Tige D24 - Entraxe 300,"Hauteur tige: 100 mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/300x300]",0,NON,2,"2,5t",10,100,100,100,1950,1,URBANIZE,7,Produits Lestés déclinaison
+LEST-060-2,Massif cubique 500kg Réservation,"Réservation diam 140
+Valable pour poteau jusqu'à 3m","113,89","1,33",unité.s,"[Lestage/Aquisition/500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Réservation]",4,NON,2,"1,3t",3,59,59,60,500,"0,209",URBANIZE,7,Produits Lestés déclinaison
+LEST-060-1,Massif cubique 500kg - Tige D18 - Entraxe 200,"Hauteur tige: 100
+Valable pour mât jusqu'à 3m","139,48","1,33",unité.s,"[Lestage/Aquisition/500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/200x200]",4,NON,1,"1,3t",3,60,60,60,515,"0,216",URBANIZE,7,Produits Lestés déclinaison
+LEST-05-1,Massif cubique 250kg Réservation,"Réservation: 140mm
+Valable pour mât jusqu'à 2m
+Usage hors sol","62,71","1,33",unité.s,"[Lestage/Aquisition/250 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Réservation]",4,NON,2,"1,3t",2,50,50,50,250,"0,125",URBANIZE,7,Produits Lestés déclinaison
+,Massif cubique 250kg Plein,"Valable pour mât jusqu'à 2m
+Usage hors sol","75,25","1,33",,"""[Lestage/Aquisition/250 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Plein]""",4,NON,2,"1,3t",2,50,50,50,250,"0,125",URBANIZE,7,Produits Lestés déclinaison
+LEST-08-2,Massif cubique 1t Réservation,"Réservation conique: 190/160mm
+Valable pour mât jusqu'à 4m
+Usage hors sol","203,46","1,33",unité.s,"[Lestage/Aquisition/1000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Réservation]",1,NON,2,"2,5t",4,80,80,80,1100,"0,512",URBANIZE,7,Produits Lestés déclinaison
+LEST-08-2,Massif cubique 1t Réservation,"Réservation conique: 190/160mm
+Valable pour mât jusqu'à 4m
+Usage hors sol","35,00",1,Mois,"[Lestage/Location/1000 kg]
+[Massif/Location/Massif_Moyen_de_Levage/Manille]
+[Massif/Location/Massif_Type/Temporaire/Cubique]
+[Massif/Location/Massif_Typology/Réservation]",1,NON,2,"2,5t",4,80,80,80,1100,"0,512",URBANIZE,7,Produits Lestés déclinaison
+LEST-08-1,Massif cubique 1t - Tige D24 - Entraxe 300,"Hauteur tige: 100
+Valable pour mât jusqu'à 4m
+Usage hors sol","231,45","1,33",unité.s,"[Lestage/Aquisition/1000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Temporaire/Cubique]
+[Massif/Aquisition/Massif_Typology/Entraxe/300x300]",1,NON,2,"2,5t",4,80,80,80,1100,"0,512",URBANIZE,7,Produits Lestés déclinaison
+LEST-11-2,Massif Stabilize 2t Réservation,"Espace visuel: 800x810 mm
+Réservation: 320/280mm
+Valable pour mât entre 5m et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Stabilize]
+[Massif/Aquisition/Massif_Typology/Réservation]",0,NON,2,"2,5t",10,"99,7","142,8",102,2000,"1,452",URBANIZE,7,Produits Lestés déclinaison
+LEST-11-2,Massif Stabilize 2t Réservation,"Espace visuel: 800x810 mm
+Réservation: 320/280mm
+Valable pour mât entre 5m et 10m
+Usage hors sol","35,00",1,unité.s,"[Lestage/Location/2000 kg]
+[Massif/Location/Massif_Moyen_de_Levage/Manille]
+[Massif/Location/Massif_Type/Stabilize]
+[Massif/Location/Massif_Typology/Réservation]",0,NON,2,"2,5t",10,"99,7","142,8",102,2000,"1,452",URBANIZE,7,Produits Lestés déclinaison
+LEST-11-1,Massif Stabilize 2t  - Tige D24 - Entraxe 300,"Espace visuel: 800x810 mm
+Hauteur tige: 100 mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Stabilize]
+[Massif/Aquisition/Massif_Typology/Entraxe/300x300]",0,NON,2,"2,5t",10,"99,7","142,8",102,2000,"1,452",URBANIZE,7,Produits Lestés déclinaison
+LEST-11-1,Massif Stabilize 2t  - Tige D18 - Entraxe 200,"Espace visuel: 800x810 mm
+Hauteur tige: 100 mm
+Valable pour mât entre 5 et 10m
+Usage hors sol","309,73","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Stabilize]
+[Massif/Aquisition/Massif_Typology/Entraxe/200x200]",0,NON,2,"2,5t",10,"99,7","142,8",102,2000,"1,452",URBANIZE,7,Produits Lestés déclinaison
+,Bloc Lego 1.5t - ergos,Multi usage,106,"1,33",unité.s,"[Lestage/Aquisition/1500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,NON,2,"2,5t",0,60,180,60,1570,"0,648",URBANIZE,7,
+,Bloc Lego 1.5t arasé,Multi usage,"107,00","1,33",unité.s,"[Lestage/Aquisition/1500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,NON,2,"2,5t",0,60,180,60,1570,"0,648",URBANIZE,7,
+BLOC60,Bloc Lego 500kg - ergos,Multi usage,"41,00","1,33",unité.s,"[Lestage/Aquisition/500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,60,60,60,500,"0,216",URBANIZE,7,
+BLOC60A,Bloc Lego 450kg arasé,Multi usage,"42,00","1,33",unité.s,"[Lestage/Aquisition/500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,60,60,60,450,"0,216",URBANIZE,7,
+BLOC120,"Bloc Lego 1,05t - ergos",Multi usage,"71,00","1,33",unité.s,"[Lestage/Aquisition/1000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,60,120,60,1050,"0,432",URBANIZE,7,
+BLOC120A,"Bloc Lego 1,01t arasé",Multi usage,"72,00","1,33",unité.s,"[Lestage/Aquisition/1000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,60,120,60,1010,"0,432",URBANIZE,7,
+BLOC120RF,Bloc Lego 120 avec réservations fourches,Multi usage,"97,00","1,33",unité.s,"[Lestage/Aquisition/1000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Fourche]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Oui,2,"2,5t",,60,120,60,1050,"0,432",URBANIZE,7,
+BLOC180RF,Bloc Lego 180 avec réservations fourches,Multi usage,"125,00","1,33",unité.s,"[Lestage/Aquisition/1500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Fourche]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Oui,2,"2,5t",,60,180,60,1520,"0,648",URBANIZE,7,
+BLOC80,"Bloc Lego 1,24t - ergos",Multi usage,"48,00","1,33",unité.s,"[Lestage/Aquisition/1000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,80,80,80,1240,"0,512",URBANIZE,7,
+BLOC80A,"Bloc Lego 1,2t arasé",Multi usage,"49,00","1,33",unité.s,"[Lestage/Aquisition/1000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,80,80,80,1200,"0,512",URBANIZE,7,
+BLOC120x80,"Bloc Lego 1,86t - ergos",Multi usage,"124,00","1,33",unité.s,"[Lestage/Aquisition/1500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,80,120,80,1860,"0,768",URBANIZE,7,
+BLOC120x80A,"Bloc Lego 1,86t arasé",Multi usage,"126,00","1,33",unité.s,"[Lestage/Aquisition/1500 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,80,120,80,1860,"0,768",URBANIZE,7,
+BLOC160,"Bloc Lego 2,35t - ergos",Multi usage,"158,00","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,80,160,80,2350,"1,024",URBANIZE,7,
+BLOC160A,"Bloc Lego 2,35t arasé",Multi usage,"160,00","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Non,2,"2,5t",,80,160,80,2350,"1,024",URBANIZE,7,
+BLOC160RF,Bloc Lego 160 avec réservations fourches,Multi usage,"175,00","1,33",unité.s,"[Lestage/Aquisition/2000 kg]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Manille]
+[Massif/Aquisition/Massif_Moyen_de_Levage/Fourche]
+[Massif/Aquisition/Massif_Type/Lego]
+[Massif/Aquisition/Massif_Typology/Plein]",0,Oui,2,"2,5t",,80,160,80,2200,"1,024",URBANIZE,7,
+LEST-ML-1.3,Manille 1.3,"Main de levage avec capacité de 1,3t","130,04",1,unité.s,[Massif/Aquisition/Massif_Moyen_de_Levage/Manille],0,,,"1,3t",,,,,,,URBANIZE,7,Produits Lestés
+LEST-ML-2.5,Manille 2.5,"Main de levage avec capacité de 2,5t","156,05",1,unité.s,[Massif/Aquisition/Massif_Moyen_de_Levage/Manille],0,,,"2,5t",,,,,,,URBANIZE,7,
+,Cale Bois,Cale pour massif avec réservation,"33,32","1,33",unité.s,[Massif/Aquisition/Accessoire],0,,,,,,,,,,URBANIZE,7,
+,Palette,,"24,50","1,33",unité.s,[Massif/Aquisition/Accessoire],,,,,,,,,,,URBANIZE,7,
+,Déchargement,,"370,00","1,33",Forfait,[Massif_Service],,,,,,,,,,,URBANIZE,7,
+,Installation,,"50,00","1,33",par palette ou massif (si pas de palette),[Massif_Service],,,,,,,,,,,URBANIZE,7,
+,Surchage énergie,,"2,55","1,33",par tonne,[Massif_Service],,,,,,,,,,,,7,

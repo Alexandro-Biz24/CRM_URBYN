@@ -42,6 +42,11 @@ class ClientOrderCreate(BaseModel):
     shippingCost: float = 0
     massifInstallFee: float = 0
     totemInstallFee: float = 0
+    massifTransport: bool = False
+    massifDechargement: bool = False
+    massifInstallation: bool = False
+    totemTransport: bool = False
+    totemInstallation: bool = False
     massifShipping: list[dict[str, Any]] | dict[str, Any] | None = None
     totalHT: float | None = None
     notes: str | None = None
@@ -109,6 +114,7 @@ class SupplierLeadCardOut(BaseModel):
     buyer_label: str | None = None
     delivery_city: str | None = None
     items_count: int
+    supplier_shipping_ht: float = 0
     supplier_total_ht: float
     supplier_total_ttc: float
     currency: str
@@ -125,6 +131,8 @@ class SupplierLeadDetailOut(BaseModel):
     delivery_address: dict[str, Any] | None = None
     currency: str
     supplier_subtotal_ht: float
+    supplier_shipping_ht: float = 0
+    supplier_services_ht: float = 0
     supplier_total_ht: float
     supplier_total_ttc: float
     items: list[ClientOrderItemOut] = Field(default_factory=list)
@@ -181,7 +189,7 @@ class AccountEmailChangeConfirm(BaseModel):
 class AccountAddressWrite(BaseModel):
     session: PortalSession
     type: str = "delivery"
-    label: str | None = None
+    label: str = Field(..., min_length=1, max_length=120)
     street: str | None = None
     city: str | None = None
     zip_code: str | None = None

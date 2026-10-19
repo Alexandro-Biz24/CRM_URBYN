@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -11,6 +12,31 @@ from app.schemas.onboarding_company import EntrepriseSearchResult
 logger = logging.getLogger(__name__)
 
 API_URL = "https://recherche-entreprises.api.gouv.fr/search"
+_TVA_IN_TEXT = re.compile(r"FR[\s.\-]*\d{2}[\s.\-]*\d{9}", re.IGNORECASE)
+
+
+def _compact(query: str) -> str:
+    return "".join(query.split()).upper().replace("-", "").replace(".", "")
+
+
+def _siren_from_identifier(query: str) -> str | None:
+    """SIREN (9), SIRET (14) ou TVA FR (clé + SIREN). None si c'est un nom."""
+    compact = _compact(query)
+    if compact.startswith("FR"):
+        digits = "".join(c for c in compact[2:] if c.isdigit())
+        if len(digits) != 11 or not compact[2:].isdigit():
+            return None
+        key = int(digits[:2])
+        siren = digits[2:]
+        expected = (12 + 3 * (int(siren) % 97)) % 97
+        return siren if key == expected else None
+    if not compact.isdigit():
+        return None
+    if len(compact) == 9:
+        return compact
+    if len(compact) == 14:
+        return compact[:9]
+    return None
 
 
 def _compute_fr_vat(siren: str) -> str | None:
@@ -48,7 +74,13 @@ def search_french_companies(query: str, *, limit: int = 8) -> list[EntrepriseSea
     if len(q) < 2:
         return []
 
-    params = urllib.parse.urlencode({"q": q, "per_page": min(limit, 25)})
+    siren_lookup = _siren_from_identifier(q)
+    if siren_lookup is None:
+        embedded = _TVA_IN_TEXT.search(q)
+        if embedded:
+            siren_lookup = _siren_from_identifier(embedded.group(0))
+    search_q = siren_lookup or q
+    params = urllib.parse.urlencode({"q": search_q, "per_page": min(limit, 25)})
     url = f"{API_URL}?{params}"
     request = urllib.request.Request(
         url,
@@ -69,6 +101,8 @@ def search_french_companies(query: str, *, limit: int = 8) -> list[EntrepriseSea
     for item in data.get("results", []):
         siren = str(item.get("siren") or "").strip()
         if not siren:
+            continue
+        if siren_lookup and siren != siren_lookup:
             continue
         siege = item.get("siege") or {}
         siret = str(siege.get("siret") or "").strip() or None

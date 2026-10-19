@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import csv
-import io
+import hashlib
 import random
 import re
 import string
-from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -15,12 +13,14 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.repositories import admin_catalog_repo as repo
+from app.repositories import supplier_offers_repo as offers_repo
 from app.schemas.admin import (
     CatalogCsvImportMode,
     CatalogCsvImportResult,
     CatalogCsvImportRowError,
 )
 from app.services.admin import AdminError
+from app.services.csv_utils import parse_decimal, parse_int, read_csv_rows, require_headers
 
 # Colonnes fixes (avant / hors attributs dynamiques)
 _FIXED_HEADERS = {
@@ -30,11 +30,29 @@ _FIXED_HEADERS = {
     "description",
     "prix référence ht",
     "prix reference ht",
+    "coefficient urbanize",
+    "délais",
+    "delais",
     "unité",
     "unite",
     "urbyn",
     "id produit sellsy",
     "fournisseur",
+    "fichier source",
+}
+
+# Toujours présentes dans le CSV_ADMIN (l'ordre peut varier)
+_REQUIRED_HEADERS = {
+    "Référence": ("référence", "reference"),
+    "Nom commercial": ("nom commercial",),
+    "Description": ("description",),
+    "Prix référence HT": ("prix référence ht", "prix reference ht"),
+    "Coefficient Urbanize": ("coefficient urbanize",),
+    "Unité": ("unité", "unite"),
+    "Urbyn": ("urbyn",),
+    "Fournisseur": ("fournisseur",),
+    "Délais": ("délais", "delais"),
+    "Fichier source": ("fichier source",),
 }
 
 _URBYN_PATH_RE = re.compile(r"\[([^\]]+)\]")
@@ -69,20 +87,6 @@ def _generate_client_sku(db: Session, company_tva: str) -> str:
         if repo.find_product_by_client_sku(db, company_tva, sku) is None:
             return sku
     raise AdminError("sku_generation_failed", "Impossible de générer un SKU unique.")
-
-
-def _resolve_owner_company(db: Session, company_tva_intra_com: str | None):
-    """
-    Société propriétaire de TOUS les produits de l'import.
-    Valeur UI prioritaire ; vide → Urbanize (défaut).
-    """
-    tva = (company_tva_intra_com or "").strip()
-    if tva:
-        company = repo.get_company(db, tva)
-        if company is None:
-            raise AdminError("company_not_found", "Société introuvable.")
-        return company
-    return repo.ensure_urbanize_company(db)
 
 
 def _parse_urbyn_paths(urbyn: str) -> list[list[str]]:
@@ -121,108 +125,41 @@ def _paths_key(path_strings: list[str]) -> str:
     return "|".join(sorted({p for p in path_strings if p}))
 
 
-def _allocate_skus_by_ref_and_urbyn(
-    db: Session,
-    owner_tva: str,
+def _allocate_skus_by_name_and_urbyn(
     rows: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[CatalogCsvImportRowError]]:
-    """
-    Référence unique → SKU = Référence (comportement d'origine).
+    """Identité = nom commercial + ensemble des chemins Urbyn.
 
-    Même Référence sur plusieurs lignes → autorisé seulement si aucun chemin
-    Urbyn en commun entre ces lignes (ex. Acquisition vs Location).
-    Sinon → lignes en erreur.
-
-    Quand paths disjoints : produits distincts, SKU suffixé par la feuille.
+    Plusieurs [chemins] sur une même ligne = un seul produit, lié à chaque catalogue.
+    La colonne Référence est conservée en attribut, elle ne crée ni ne rejette de ligne.
+    Deux lignes au même nom et aux mêmes chemins mettent à jour le même produit.
     """
-    errors: list[CatalogCsvImportRowError] = []
-    by_base: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    warnings: list[CatalogCsvImportRowError] = []
+    identity_sku: dict[tuple[str, str], str] = {}
 
     for item in rows:
-        base = (item["sku"] or "").strip()
-        item["sku_base"] = base
-        item["path_set"] = set(item.get("path_strings") or [])
-        by_base[base].append(item)
-
-    rejected: set[int] = set()  # line numbers
-
-    for base, group in by_base.items():
-        if not base or len(group) < 2:
-            continue
-        # Vérifier absence de path commun entre chaque paire de lignes
-        for i, a in enumerate(group):
-            for b in group[i + 1 :]:
-                common = a["path_set"] & b["path_set"]
-                if not common:
-                    continue
-                msg = (
-                    f"Référence « {base} » en double avec chemin(s) Urbyn en commun "
-                    f"({', '.join(sorted(common))}). "
-                    f"Soit une seule ligne, soit des paths disjoints."
-                )
-                for item in (a, b):
-                    if item["line"] in rejected:
-                        continue
-                    rejected.add(item["line"])
-                    errors.append(
-                        CatalogCsvImportRowError(line=item["line"], message=msg)
-                    )
-
-    kept = [item for item in rows if item["line"] not in rejected]
-
-    # Quelles Références (encore présentes) ont plusieurs jeux de paths ?
-    by_base_kept: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for item in kept:
-        by_base_kept[item["sku_base"]].append(item)
-
-    bases_needing_suffix: set[str] = set()
-    for base, group in by_base_kept.items():
-        if not base:
-            continue
-        if len({item["paths_key"] for item in group}) > 1:
-            bases_needing_suffix.add(base)
-
-    identity_sku: dict[tuple[str, str], str] = {}
-    used: set[str] = set()
-    warnings: list[CatalogCsvImportRowError] = []
-
-    for item in kept:
-        base = item["sku_base"]
+        name_key = " ".join((item["name"] or "").casefold().split())
         paths_key = item["paths_key"]
-        identity = (base.upper(), paths_key)
-
+        identity = (name_key, paths_key)
         if identity in identity_sku:
             item["sku"] = identity_sku[identity]
-            continue
-
-        if not base:
-            sku = _generate_client_sku(db, owner_tva)
-            while sku.upper() in used:
-                sku = _generate_client_sku(db, owner_tva)
-        elif base in bases_needing_suffix:
-            leaf = item["leaf_labels"][0] if item["leaf_labels"] else "PATH"
-            sku = f"{base}-{_slug_sku_part(leaf)}"
-            n = 2
-            while sku.upper() in used:
-                sku = f"{base}-{_slug_sku_part(leaf)}-{n}"
-                n += 1
             warnings.append(
                 CatalogCsvImportRowError(
                     line=item["line"],
                     message=(
-                        f"Référence « {base} » sur plusieurs paths Urbyn disjoints "
-                        f"→ SKU « {sku} »."
+                        f"Même nom et mêmes chemins Urbyn que la ligne déjà vue "
+                        f"→ mise à jour du produit « {item['sku']} »."
                     ),
                 )
             )
-        else:
-            sku = base
+            continue
 
-        used.add(sku.upper())
+        digest = hashlib.sha1(f"{name_key}|{paths_key}".encode()).hexdigest()[:6].upper()
+        sku = f"{_slug_sku_part(item['name'], max_len=40)}-{digest}"
         identity_sku[identity] = sku
         item["sku"] = sku
 
-    return kept, errors + warnings
+    return rows, warnings
 
 
 def import_catalog_csv(
@@ -230,42 +167,22 @@ def import_catalog_csv(
     *,
     content: bytes,
     mode: CatalogCsvImportMode,
-    company_tva_intra_com: str | None = None,
 ) -> CatalogCsvImportResult:
-    # L'UI prime : une seule société pour tout le fichier
-    owner = _resolve_owner_company(db, company_tva_intra_com)
+    # CSV_ADMIN : URBANIZE est toujours le fournisseur, jamais abonné
+    owner = repo.ensure_urbanize_company(db)
     owner_tva = owner.tva_intra_com
+    offers_repo.set_subscription(db, owner_tva, False)
 
-    try:
-        text = content.decode("utf-8-sig")
-    except UnicodeDecodeError:
-        text = content.decode("latin-1")
-
-    sample = text[:4096]
-    try:
-        dialect = csv.Sniffer().sniff(sample, delimiters=";,\t")
-    except csv.Error:
-        dialect = csv.excel
-        dialect.delimiter = ";" if sample.count(";") >= sample.count(",") else ","
-
-    reader = csv.reader(io.StringIO(text), dialect)
-    rows = list(reader)
-    if not rows:
-        raise AdminError("empty_csv", "Le fichier CSV est vide.")
-
+    rows = read_csv_rows(content)
     headers = rows[0]
     norm_headers = [_norm_header(h) for h in headers]
-    if "urbyn" not in norm_headers or "nom commercial" not in norm_headers:
-        raise AdminError(
-            "invalid_csv_headers",
-            "Colonnes obligatoires manquantes : « Nom commercial » et « Urbyn ».",
-        )
+    require_headers(headers, _REQUIRED_HEADERS)
 
-    urbyn_index = norm_headers.index("urbyn")
+    # Attributs = toutes les colonnes hors colonnes fixes, quelle que soit leur position
     dynamic_headers = [
         headers[i]
         for i, nh in enumerate(norm_headers)
-        if i > urbyn_index and nh and nh not in _FIXED_HEADERS
+        if nh and nh not in _FIXED_HEADERS
     ]
 
     # Pass 1 — parser le CSV (chemins Urbyn) sans figer l'arborescence encore
@@ -322,6 +239,29 @@ def import_catalog_csv(
         if sellsy_id:
             attrs.setdefault("ID Produit Sellsy", sellsy_id)
 
+        reference = _get(row, "référence", "reference")
+        if reference:
+            attrs.setdefault("Référence", reference)
+
+        coef = parse_decimal(_get(row, "coefficient urbanize"))
+        if coef is None or coef <= 0:
+            errors.append(
+                CatalogCsvImportRowError(
+                    line=line_no,
+                    message="Coefficient Urbanize vide ou invalide → 1 appliqué.",
+                )
+            )
+            coef = Decimal("1")
+        delai = parse_int(_get(row, "délais", "delais"))
+        if delai is None or delai < 0:
+            errors.append(
+                CatalogCsvImportRowError(
+                    line=line_no,
+                    message="Délais vide ou invalide → 0 jour appliqué.",
+                )
+            )
+            delai = 0
+
         pending_rows.append(
             {
                 "line": line_no,
@@ -331,6 +271,8 @@ def import_catalog_csv(
                 "description": _get(row, "description"),
                 "price": _parse_price(_get(row, "prix référence ht", "prix reference ht")),
                 "currency": _parse_currency(unit_raw),
+                "coef": coef,
+                "delai": delai,
                 "paths": paths,
                 "attrs": attrs,
             }
@@ -378,6 +320,8 @@ def import_catalog_csv(
                 "description": item["description"],
                 "price": item["price"],
                 "currency": item["currency"],
+                "coef": item["coef"],
+                "delai": item["delai"],
                 "leaf_ids": list(dict.fromkeys(leaf_ids)),
                 "leaf_labels": leaf_labels,
                 "path_strings": path_strings,
@@ -386,13 +330,12 @@ def import_catalog_csv(
             }
         )
 
-    parsed_rows, sku_messages = _allocate_skus_by_ref_and_urbyn(
-        db, owner_tva, parsed_rows
-    )
+    parsed_rows, sku_messages = _allocate_skus_by_name_and_urbyn(parsed_rows)
     errors.extend(sku_messages)
     products_created = 0
     products_updated = 0
     links_created = 0
+    offers_written = 0
 
     for item in parsed_rows:
         sku = (item["sku"] or "").strip()
@@ -421,6 +364,18 @@ def import_catalog_csv(
             price=item["price"],
             currency=item["currency"],
         )
+        if offers_repo.append_offer(
+            db,
+            company_tva=owner_tva,
+            product_id=product.id,
+            price=item["price"],
+            urbyn_marge=item["coef"],
+            delai_jours=item["delai"],
+            stock=0,
+            source="csv_admin",
+            currency=item["currency"],
+        ):
+            offers_written += 1
         repo.upsert_free_attributes(db, product.id, item["attrs"])
 
         for catalog_id in item["leaf_ids"]:
@@ -436,6 +391,7 @@ def import_catalog_csv(
         catalogs_created=len(created_catalog_ids),
         catalogs_cleared=catalogs_cleared,
         links_created=links_created,
+        offers_written=offers_written,
         rows_processed=len(parsed_rows),
         errors=errors,
     )
