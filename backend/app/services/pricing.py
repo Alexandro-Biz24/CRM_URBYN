@@ -151,11 +151,31 @@ def _catalog_ids_with_ancestors(db: Session, product_id: int) -> dict[int, int]:
     return depth
 
 
-def supplier_origin(db: Session, product_id: int, supplier_tva: str) -> Address | None:
-    """Adresse liée au catalogue du produit pour ce fournisseur.
+def _own_departure_address(db: Session, supplier_tva: str) -> Address | None:
+    """Siège ou adresse principale du fournisseur, quand aucun catalogue n'est lié."""
+    addrs = [
+        addr
+        for addr in db.scalars(
+            select(Address)
+            .where(Address.company_tva_intra_com == supplier_tva)
+            .order_by(Address.is_primary.desc(), Address.id.asc())
+        ).all()
+        if (addr.zip_code or "").strip()
+    ]
+    if not addrs:
+        return None
+    for addr in addrs:
+        label = (addr.label or "").lower().replace("è", "e").replace("é", "e")
+        if "siege" in label:
+            return addr
+    for addr in addrs:
+        if addr.is_primary:
+            return addr
+    return addrs[0]
 
-    URBANIZE est le seul repli : son adresse enregistrée (15e si elle existe).
-    """
+
+def supplier_origin(db: Session, product_id: int, supplier_tva: str) -> Address | None:
+    """Adresse de départ : catalogue du produit si elle est liée, sinon le siège du fournisseur."""
     depth = _catalog_ids_with_ancestors(db, product_id)
     if depth:
         rows = db.execute(
@@ -176,18 +196,7 @@ def supplier_origin(db: Session, product_id: int, supplier_tva: str) -> Address 
                 best, best_key = addr, key
         if best is not None:
             return best
-
-    if supplier_tva != URBANIZE_TVA:
-        return None
-    addrs = db.scalars(
-        select(Address)
-        .where(Address.company_tva_intra_com == supplier_tva)
-        .order_by(Address.is_primary.desc(), Address.id.asc())
-    ).all()
-    for addr in addrs:
-        if (addr.zip_code or "").startswith("75015"):
-            return addr
-    return addrs[0] if addrs else None
+    return _own_departure_address(db, supplier_tva)
 
 
 def _geocode(db: Session, postal_code: str, city: str) -> tuple[float, float] | None:
