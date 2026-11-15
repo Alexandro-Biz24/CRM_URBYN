@@ -31,6 +31,7 @@ from app.repositories import supplier_offers_repo as offers_repo
 from app.services.pricing_math import (
     TruckGroupKey,
     effective_unit_price,
+    massif_energy_surcharge,
     massif_handling_units,
     massif_truck_cost,
     massif_trucks,
@@ -199,34 +200,43 @@ def supplier_origin(db: Session, product_id: int, supplier_tva: str) -> Address 
     return _own_departure_address(db, supplier_tva)
 
 
-def _geocode(db: Session, postal_code: str, city: str) -> tuple[float, float] | None:
+def _place_key(value: str | None) -> str:
+    text = (value or "").casefold()
+    for src, dst in (
+        ("é", "e"), ("è", "e"), ("ê", "e"), ("ë", "e"),
+        ("à", "a"), ("â", "a"), ("ù", "u"), ("û", "u"),
+        ("ô", "o"), ("î", "i"), ("ï", "i"), ("ç", "c"),
+        ("-", " "), ("’", " "), ("'", " "),
+    ):
+        text = text.replace(src, dst)
+    return " ".join(text.split())
+
+
+def _geocode(
+    db: Session, postal_code: str, city: str, street: str = ""
+) -> tuple[float, float] | None:
+    """Point BAN (rue si on l'a, sinon la commune du code postal)."""
     pc = postal_code.strip()
-    key = f"{pc}|{_norm(city)}|fr"
+    key = f"ban|{pc}|{_place_key(city)}|{_place_key(street)}"[:255]
     cached = db.get(GeocodeCache, key)
     if cached is not None:
         return cached.lat, cached.lng
     if len(pc) < 5:
         return None
+    query = " ".join(part.strip() for part in (street, city) if part and part.strip()) or pc
     try:
         response = httpx.get(
-            "https://geo.api.gouv.fr/communes",
-            params={"codePostal": pc, "fields": "nom,centre", "format": "json"},
+            "https://api-adresse.data.gouv.fr/search/",
+            params={"q": query, "postcode": pc, "limit": 1},
             timeout=6,
         )
         response.raise_for_status()
-        data = response.json()
+        features = response.json().get("features") or []
     except Exception:
+        features = []
+    if not features:
         return None
-    if not isinstance(data, list) or not data:
-        return None
-    chosen = data[0]
-    city_key = _norm(city)
-    if city_key:
-        for item in data:
-            if _norm(item.get("nom")) == city_key:
-                chosen = item
-                break
-    coords = (chosen.get("centre") or {}).get("coordinates") or []
+    coords = (features[0].get("geometry") or {}).get("coordinates") or []
     if len(coords) < 2:
         return None
     lng, lat = float(coords[0]), float(coords[1])
@@ -241,9 +251,11 @@ def road_distance_km(
     origin_city: str,
     dest_zip: str,
     dest_city: str,
+    origin_street: str = "",
+    dest_street: str = "",
 ) -> Decimal:
-    origin = _geocode(db, origin_zip, origin_city)
-    dest = _geocode(db, dest_zip, dest_city)
+    origin = _geocode(db, origin_zip, origin_city, origin_street)
+    dest = _geocode(db, dest_zip, dest_city, dest_street)
     if origin is None or dest is None:
         return Decimal("0")
     origin_key = f"{origin[0]:.5f},{origin[1]:.5f}"
@@ -355,9 +367,14 @@ def _prepare_line(
     distance = Decimal("0")
     if needs_road and origin is not None and dest_zip:
         distance = road_distance_km(
-            db, origin.zip_code or "", origin.city or "", dest_zip, dest_city
+            db,
+            origin.zip_code or "",
+            origin.city or "",
+            dest_zip,
+            dest_city,
+            origin_street=origin.street or "",
         )
-    per_palette_raw = _attr_value(db, product.id, "palette")
+    per_palette_raw = _attr_value(db, product.id, "nb de massif / palette", "nb de massif par palette")
     return _ReadyLine(
         product_id=product.id,
         name=product.product_name,
@@ -433,6 +450,10 @@ def quote_lines(db: Session, lines: list[CartLineIn], ctx: QuoteContext) -> dict
     shipping = Decimal("0")
     shipping_by_supplier: dict[str, Decimal] = {}
     massif_truck_count = 0
+    massif_weight = Decimal("0")
+    for group in massif_groups.values():
+        massif_weight += sum((line.unit_weight * line.quantity for line in group), Decimal("0"))
+    energy = massif_energy_surcharge(massif_weight)
     if ctx.massif_transport:
         for key, group in massif_groups.items():
             weight = sum((line.unit_weight * line.quantity for line in group), Decimal("0"))
@@ -461,12 +482,12 @@ def quote_lines(db: Session, lines: list[CartLineIn], ctx: QuoteContext) -> dict
     if ctx.massif_transport and ctx.massif_dechargement and ctx.massif_installation and install_units:
         unit = _service_unit(db, ["Massif_Service"], "Installation", URBANIZE_TVA)
         installation = money(unit * install_units)
-    for tva, qty in palette_qty.items():
+    for _tva, qty in palette_qty.items():
         if qty <= 0:
             continue
-        unit = _service_unit(db, ["Massif_Service"], "Palette", tva)
+        unit = _service_unit(db, ["Massif_Service"], "Palette", URBANIZE_TVA)
         if unit == 0:
-            unit = _service_unit(db, ["Massif", "Accessoire"], "Palette", tva)
+            unit = _service_unit(db, ["Massif", "Accessoire"], "Palette", URBANIZE_TVA)
         palettes_ht += money(unit * qty)
 
     totem_install = Decimal("0")
@@ -475,11 +496,14 @@ def quote_lines(db: Session, lines: list[CartLineIn], ctx: QuoteContext) -> dict
         unit = _service_unit(db, ["Totem", "Accessoire"], "Installation complète", URBANIZE_TVA)
         totem_install = money(unit * totem_qty)
 
-    total = money(products_ht - discount + palettes_ht + shipping + dechargement + installation + totem_install)
+    total = money(
+        products_ht - discount + palettes_ht + energy + shipping + dechargement + installation + totem_install
+    )
     return {
         "products_ht": float(money(products_ht)),
         "discount": float(money(discount)),
         "palettes_ht": float(money(palettes_ht)),
+        "energy_surcharge": float(energy),
         "shipping": float(money(shipping)),
         "dechargement": float(money(dechargement)),
         "installation": float(money(installation)),
@@ -487,6 +511,17 @@ def quote_lines(db: Session, lines: list[CartLineIn], ctx: QuoteContext) -> dict
         "total": float(total),
         "delay_days": max_delay,
         "massif_trucks": massif_truck_count,
+        "origins": [
+            {
+                "product_id": line.product_id,
+                "supplier_tva": line.supplier_tva,
+                "zip": line.origin_zip,
+                "city": line.origin_city,
+                "distance_km": float(line.distance_km),
+            }
+            for line in ready
+            if (line.origin_zip or "").strip()
+        ],
         "shipping_by_supplier": {
             tva: float(money(amount)) for tva, amount in shipping_by_supplier.items()
         },
@@ -535,6 +570,8 @@ def estimate_product(
                 "added_total": float(added),
                 "added_shipping": float(added_shipping),
                 "order_total": quoted["total"],
+                "origin_zip": (origin.zip_code or "").strip() if origin else "",
+                "origin_city": (origin.city or "").strip() if origin else "",
                 "_added": added,
                 "_ship": added_shipping,
             }

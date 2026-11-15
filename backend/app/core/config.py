@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     ADMIN_ID: str = ""
     ADMIN_PWD: str = ""
 
+    # Sellsy API v2 — accès Personnel (client credentials)
+    SELLSY_CLIENT_ID: str = ""
+    SELLSY_CLIENT_SECRET: str = ""
+
     # Fiches techniques totem (Google Drive) — secrets uniquement côté serveur
     # JSON: {"caisson-bois-80":"<DRIVE_FILE_ID>", "sign-iz":"<DRIVE_FILE_ID>", ...}
     FICHE_TECHNIQUE_DRIVE_MAP: str = ""
