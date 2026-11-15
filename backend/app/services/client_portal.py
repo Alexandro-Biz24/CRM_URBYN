@@ -1256,6 +1256,18 @@ def list_massif_manilles(
     )
 
 
+def _client_offer_price(db: Session, product_id: int, supplier_tva: str | None) -> float | None:
+    """Prix client : offre × coefficient Urbanize si le fournisseur n'est pas abonné."""
+    if not supplier_tva:
+        return None
+    from app.services.pricing import _offer_unit
+
+    priced = _offer_unit(db, product_id, supplier_tva)
+    if priced is None:
+        return None
+    return float(priced[0])
+
+
 def get_massif_palette(
     db: Session,
     *,
@@ -1337,13 +1349,15 @@ def get_massif_palette(
         if not _looks_like_palette(product.product_name, product.admin_sku):
             continue
         latest = product_price_repo.get_latest_price(db, product.id)
+        supplier_tva = company.tva_intra_com if company else None
+        offered = _client_offer_price(db, product.id, supplier_tva)
         candidate = MassifPaletteOut(
             product_id=product.id,
             product_name=product.product_name,
             admin_sku=product.admin_sku,
             client_sku=product.client_sku,
             description=_product_description(db, product),
-            price=float(latest.price) if latest else 0.0,
+            price=offered if offered is not None else (float(latest.price) if latest else 0.0),
             currency=latest.currency if latest else "EUR",
             company_name=company.company_name if company else None,
             company_tva=company.tva_intra_com if company else None,
@@ -1364,13 +1378,15 @@ def get_massif_palette(
         if len(non_cale) == 1:
             product, company = non_cale[0]
             latest = product_price_repo.get_latest_price(db, product.id)
+            supplier_tva = company.tva_intra_com if company else None
+            offered = _client_offer_price(db, product.id, supplier_tva)
             palette_out = MassifPaletteOut(
                 product_id=product.id,
                 product_name=product.product_name,
                 admin_sku=product.admin_sku,
                 client_sku=product.client_sku,
                 description=_product_description(db, product),
-                price=float(latest.price) if latest else 0.0,
+                price=offered if offered is not None else (float(latest.price) if latest else 0.0),
                 currency=latest.currency if latest else "EUR",
                 company_name=company.company_name if company else None,
                 company_tva=company.tva_intra_com if company else None,

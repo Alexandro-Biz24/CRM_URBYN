@@ -17,10 +17,12 @@ from app.schemas.admin import (
     CatalogCsvImportMode,
     CatalogCsvImportResult,
     CatalogProductAttributeOut,
+    AppExcelImportResult,
     SubscriptionsCsvImportResult,
     SupplierOffersCsvImportResult,
 )
 from app.services import admin as admin_svc
+from app.services import app_excel as app_excel_svc
 from app.services import catalog_csv_import as csv_import_svc
 from app.services import csv_export as csv_export_svc
 from app.services import subscriptions_csv_import as subscriptions_csv_import_svc
@@ -152,6 +154,50 @@ def admin_export_subscriptions_csv(
         csv_export_svc.export_subscriptions_csv(db),
         "CSV_ABONNEMENT.csv",
     )
+
+
+def _xlsx_attachment(content: bytes, filename: str) -> Response:
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/app-export/excel")
+def admin_export_app_excel(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> Response:
+    """Classeur APP EXPORT : SKU, abonnements, fournisseurs, un onglet par catalogue racine."""
+    try:
+        content = app_excel_svc.export_app_excel(db)
+    except AdminError as exc:
+        raise _http_error(exc) from exc
+    return _xlsx_attachment(content, "APP_EXPORT.xlsx")
+
+
+@router.post("/app-export/excel", response_model=AppExcelImportResult)
+async def admin_import_app_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+) -> AppExcelImportResult:
+    """Réécrit catalogues, produits, abonnements et offres depuis le classeur. Les racines absentes sont supprimées."""
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "empty_file", "message": "Fichier vide."},
+        )
+    try:
+        return app_excel_svc.import_app_excel(db, raw)
+    except AdminError as exc:
+        db.rollback()
+        raise _http_error(exc) from exc
+    except Exception:
+        db.rollback()
+        raise
 
 
 async def _run_csv_import(file: UploadFile, db: Session, importer, mode: CatalogCsvImportMode):
