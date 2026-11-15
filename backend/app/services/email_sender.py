@@ -1,15 +1,32 @@
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import smtplib
+import socket
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from email.message import EmailMessage
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _ipv4():
+    original = socket.getaddrinfo
+
+    def resolve(host, port, family=0, type=0, proto=0, flags=0):
+        return original(host, port, socket.AF_INET, type, proto, flags)
+
+    socket.getaddrinfo = resolve
+    try:
+        yield
+    finally:
+        socket.getaddrinfo = original
 
 
 class EmailDeliveryError(Exception):
@@ -79,16 +96,30 @@ def _resend_error_message(http_code: int, detail: str, *, to_email: str) -> str:
     return f"L'envoi de l'email a échoué : {msg}"
 
 
-def _send_via_resend(*, to_email: str, subject: str, html: str, text: str) -> None:
-    payload = json.dumps(
-        {
-            "from": settings.mail_from,
-            "to": [to_email],
-            "subject": subject,
-            "html": html,
-            "text": text,
-        }
-    ).encode("utf-8")
+def _send_via_resend(
+    *,
+    to_email: str,
+    subject: str,
+    html: str,
+    text: str,
+    attachments: list[tuple[str, bytes]] | None = None,
+) -> None:
+    body: dict = {
+        "from": settings.mail_from,
+        "to": [to_email],
+        "subject": subject,
+        "html": html,
+        "text": text,
+    }
+    if attachments:
+        body["attachments"] = [
+            {
+                "filename": name,
+                "content": base64.b64encode(content).decode("ascii"),
+            }
+            for name, content in attachments
+        ]
+    payload = json.dumps(body).encode("utf-8")
 
     request = urllib.request.Request(
         "https://api.resend.com/emails",
@@ -102,9 +133,10 @@ def _send_via_resend(*, to_email: str, subject: str, html: str, text: str) -> No
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            if response.status >= 400:
-                raise EmailDeliveryError(f"Resend HTTP {response.status}")
+        with _ipv4():
+            with urllib.request.urlopen(request, timeout=30) as response:
+                if response.status >= 400:
+                    raise EmailDeliveryError(f"Resend HTTP {response.status}")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         logger.error("Resend error %s: %s", exc.code, detail)
@@ -115,13 +147,22 @@ def _send_via_resend(*, to_email: str, subject: str, html: str, text: str) -> No
         raise EmailDeliveryError("Impossible de joindre le service d'envoi d'emails.") from exc
 
 
-def _send_via_smtp(*, to_email: str, subject: str, html: str, text: str) -> None:
+def _send_via_smtp(
+    *,
+    to_email: str,
+    subject: str,
+    html: str,
+    text: str,
+    attachments: list[tuple[str, bytes]] | None = None,
+) -> None:
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = settings.mail_from
     message["To"] = to_email
     message.set_content(text)
     message.add_alternative(html, subtype="html")
+    for name, content in attachments or []:
+        message.add_attachment(content, maintype="application", subtype="pdf", filename=name)
 
     try:
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=30) as smtp:
@@ -152,6 +193,28 @@ def send_verification_email(*, to_email: str, code: str, ttl_minutes: int) -> No
         _send_via_smtp(to_email=to_email, subject=subject, html=html, text=text)
 
     logger.info("Email de vérification envoyé à %s", to_email)
+
+
+def send_html_email(
+    *,
+    to_email: str,
+    subject: str,
+    html: str,
+    text: str,
+    attachments: list[tuple[str, bytes]] | None = None,
+) -> None:
+    if not settings.email_configured:
+        raise EmailDeliveryError(
+            "Aucun service email configuré. Ajoutez RESEND_API_KEY ou les variables SMTP dans .env."
+        )
+    if settings.resend_configured:
+        _send_via_resend(
+            to_email=to_email, subject=subject, html=html, text=text, attachments=attachments
+        )
+    else:
+        _send_via_smtp(
+            to_email=to_email, subject=subject, html=html, text=text, attachments=attachments
+        )
 
 
 def send_shipping_quote_email(

@@ -56,6 +56,19 @@ class SubscriptionsCsvImportResult(BaseModel):
     warnings: list[CatalogCsvImportRowError] = Field(default_factory=list)
 
 
+class AppExcelImportResult(BaseModel):
+    """Excel APP EXPORT — rien n'est écrit si `errors` n'est pas vide."""
+
+    applied: bool = False
+    sku_rows: int = 0
+    products_written: int = 0
+    products_deleted: int = 0
+    catalogs_deleted: int = 0
+    offers_written: int = 0
+    subscriptions_written: int = 0
+    errors: list[CatalogCsvImportRowError] = Field(default_factory=list)
+
+
 class CatalogProductAttributeOut(BaseModel):
     """Attribut présent sur les produits d'un catalogue (+ flag obligatoire)."""
 

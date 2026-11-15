@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import desc, select
@@ -26,6 +27,8 @@ from app.schemas.supplier_portal import PortalSession
 from app.services.client_portal import ClientPortalError
 from app.services.supplier_portal import PortalError as SupplierPortalError
 from app.services.supplier_portal import get_context as get_supplier_context
+
+logger = logging.getLogger(__name__)
 
 
 def _require_client_user(db: Session, session: PortalSession) -> User:
@@ -227,6 +230,12 @@ def create_client_order(db: Session, payload: ClientOrderCreate) -> ClientOrderD
         )
 
     db.commit()
+    try:
+        from app.services.sellsy_estimates import attach_sellsy_estimate
+
+        attach_sellsy_estimate(db, order)
+    except Exception:
+        logger.exception("Devis Sellsy non créé pour la commande %s", order.id)
     return get_buyer_order_detail(db, payload.session, order.id)
 
 
