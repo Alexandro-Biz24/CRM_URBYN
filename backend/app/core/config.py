@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     SMTP_FROM: str | None = None
     SMTP_USE_TLS: bool = True
 
+    # Destinataire interne des demandes « solution d'ombrage patio ».
+    # Vide = aucune notification envoyée (la demande reste enregistrée en base).
+    OMBRAGE_DEMANDE_EMAIL: str = ""
+
     ADMIN_ID: str = ""
     ADMIN_PWD: str = ""
 

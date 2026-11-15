@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import smtplib
@@ -193,3 +194,87 @@ def send_shipping_quote_email(
         _send_via_smtp(to_email=buyer_email, subject=subject, html=html, text=text)
 
     logger.info("Demande de devis livraison envoyée pour produit %s", product_id)
+
+
+def send_internal_notification(
+    *,
+    to_email: str,
+    subject: str,
+    text: str,
+    reply_to: str | None = None,
+    attachments: list[tuple[str, str, bytes]] | None = None,
+) -> None:
+    """Notification interne Urbanize, avec pièces jointes éventuelles.
+
+    `attachments` : liste de (nom de fichier, type MIME, contenu).
+    """
+    if not settings.email_configured:
+        raise EmailDeliveryError("Aucun service email configuré.")
+
+    attachments = attachments or []
+    html = f"<pre style=\"font-family:inherit;white-space:pre-wrap\">{_escape(text)}</pre>"
+
+    if settings.resend_configured:
+        payload: dict = {
+            "from": settings.mail_from,
+            "to": [to_email],
+            "subject": subject,
+            "html": html,
+            "text": text,
+        }
+        if reply_to:
+            payload["reply_to"] = reply_to
+        if attachments:
+            payload["attachments"] = [
+                {"filename": name, "content": base64.b64encode(data).decode("ascii")}
+                for name, _mime, data in attachments
+            ]
+        request = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                "User-Agent": "urbyn-crm/1.0",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                if response.status >= 400:
+                    raise EmailDeliveryError(f"Resend HTTP {response.status}")
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            logger.error("Resend error %s: %s", exc.code, detail)
+            raise EmailDeliveryError(f"Resend HTTP {exc.code}") from exc
+        except urllib.error.URLError as exc:
+            logger.error("Resend network error: %s", exc)
+            raise EmailDeliveryError("Service d'envoi d'emails injoignable.") from exc
+        return
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = settings.mail_from
+    message["To"] = to_email
+    if reply_to:
+        message["Reply-To"] = reply_to
+    message.set_content(text)
+    message.add_alternative(html, subtype="html")
+    for name, mime, data in attachments:
+        maintype, _, subtype = mime.partition("/")
+        message.add_attachment(
+            data, maintype=maintype or "application", subtype=subtype or "octet-stream", filename=name
+        )
+    try:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=60) as smtp:
+            if settings.SMTP_USE_TLS:
+                smtp.starttls()
+            smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            smtp.send_message(message)
+    except smtplib.SMTPException as exc:
+        logger.error("SMTP error: %s", exc)
+        raise EmailDeliveryError("L'envoi SMTP a échoué.") from exc
+
+
+def _escape(value: str) -> str:
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")

@@ -41,3 +41,6 @@ from .payment import Payment
 # Reviews
 from .review import Review
 from .review_translation import ReviewTranslation
+
+# Solutions d'ombrage — demandes de chiffrage patio
+from .ombrage_patio import OmbragePatioDemande, OmbragePatioPhoto
