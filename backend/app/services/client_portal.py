@@ -794,6 +794,39 @@ def _resolve_massif_scope(
     return root, None, root
 
 
+def _real_massif_suppliers(
+    db: Session, product_ids: list[int]
+) -> dict[int, list[tuple[str, str]]]:
+    """Fournisseurs réels d'un massif. Urbanize est exclu : il ne vend pas de béton."""
+    from app.repositories import supplier_offers_repo as offers_repo
+    from app.services.pricing import is_urbanize_supplier
+
+    offers = offers_repo.latest_offers_for_products(db, product_ids)
+    if not offers:
+        return {}
+    companies = {
+        company.tva_intra_com: company
+        for company in db.scalars(
+            select(Company).where(
+                Company.tva_intra_com.in_({offer.company_tva_intra_com for offer in offers})
+            )
+        ).all()
+    }
+    grouped: dict[int, list[tuple[str, str]]] = {}
+    seen: set[tuple[int, str]] = set()
+    for offer in offers:
+        company = companies.get(offer.company_tva_intra_com)
+        name = company.company_name if company else offer.company_tva_intra_com
+        if is_urbanize_supplier(offer.company_tva_intra_com, name):
+            continue
+        key = (offer.product_id, offer.company_tva_intra_com)
+        if key in seen:
+            continue
+        seen.add(key)
+        grouped.setdefault(offer.product_id, []).append((offer.company_tva_intra_com, name))
+    return grouped
+
+
 def list_massif_leaf_catalogs(
     db: Session,
     root_name: str = MASSIF_ROOT_DEFAULT,
@@ -813,6 +846,10 @@ def list_massif_leaf_catalogs(
     leaves = buyer_repo.collect_leaf_catalogs(db, scope.id)
     catalogs: list[MassifLeafCatalogOut] = []
     for leaf in leaves:
+        leaf_rows = buyer_repo.get_product_catalog_links_in_catalogs(db, [leaf.id])
+        leaf_product_ids = list({product.id for product, _company, _cat in leaf_rows})
+        if not _real_massif_suppliers(db, leaf_product_ids):
+            continue
         if poids_min is not None and poids_max is not None:
             if not _leaf_has_products_in_weight_range(db, leaf.id, poids_min, poids_max):
                 continue
@@ -853,6 +890,9 @@ def _leaf_has_products_in_weight_range(
         product_ids.append(product.id)
     if not product_ids:
         return False
+    product_ids = [pid for pid in product_ids if pid in _real_massif_suppliers(db, product_ids)]
+    if not product_ids:
+        return False
     mandatory, free, _prices = _load_product_attr_bundle(db, product_ids)
     for pid in product_ids:
         weight = _weight_from_attr_rows(mandatory.get(pid, []), free.get(pid, []))
@@ -890,6 +930,8 @@ def list_massif_available_weight_bands(
         seen.add(product.id)
         product_ids.append(product.id)
 
+    supplied = _real_massif_suppliers(db, product_ids)
+    product_ids = [pid for pid in product_ids if pid in supplied]
     mandatory, free, _prices = _load_product_attr_bundle(db, product_ids)
     weights: list[float] = []
     for pid in product_ids:
@@ -1053,6 +1095,7 @@ def list_massif_products(
 
     mandatory, free, prices = _load_product_attr_bundle(db, [p.id for p in unique])
     extra_paths = _extra_catalog_paths(db, [p.id for p in unique], offer)
+    real_suppliers = _real_massif_suppliers(db, [p.id for p in unique])
     origin_cache: dict[int, tuple[str, str | None, int | None]] = {}
 
     products: list[MassifProductOut] = []
@@ -1062,8 +1105,13 @@ def list_massif_products(
         )
         if weight is None or weight < poids_min or weight > poids_max:
             continue
+        suppliers = real_suppliers.get(product.id) or []
+        if not suppliers:
+            continue
         company, cat = row_meta[product.id]
         latest = prices.get(product.id)
+        supplier_names = list(dict.fromkeys(name for _tva, name in suppliers))
+        supplier_tva = suppliers[0][0] if len(suppliers) == 1 else None
         typology_paths, lestage_paths = extra_paths.get(product.id, ([], []))
         free_attrs = [
             ProductAttributeOut(id=a.id, name=a.name, value=a.value)
@@ -1087,8 +1135,8 @@ def list_massif_products(
                 ),
                 price=float(latest.price) if latest else 0.0,
                 currency=latest.currency if latest else "EUR",
-                company_name=company.company_name if company else None,
-                company_tva=company.tva_intra_com if company else None,
+                company_name=", ".join(supplier_names),
+                company_tva=supplier_tva,
                 company_zip=company_zip,
                 company_city=company_city,
                 company_country=company_country,

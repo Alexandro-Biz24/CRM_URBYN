@@ -42,6 +42,7 @@ from app.services.pricing_math import (
 )
 
 URBANIZE_TVA = catalog_repo._DEFAULT_URBANIZE_TVA
+_LEGACY_URBANIZE_TVA = catalog_repo._LEGACY_URBANIZE_TVA
 
 
 @dataclass
@@ -65,6 +66,35 @@ class QuoteContext:
 
 def _norm(value: str | None) -> str:
     return " ".join((value or "").replace("_", " ").casefold().split())
+
+
+def is_urbanize_supplier(tva: str | None, name: str | None = None) -> bool:
+    """Urbanize est le vendeur des totems, jamais un fournisseur de massif béton."""
+    if tva in {URBANIZE_TVA, _LEGACY_URBANIZE_TVA}:
+        return True
+    return _norm(name) == "urbanize"
+
+
+def _real_massif_offer(db: Session, product_id: int, supplier_tva: str) -> str | None:
+    """Garde le fournisseur choisi, ou le remplace s'il s'agit d'Urbanize."""
+    company = db.get(Company, supplier_tva)
+    if not is_urbanize_supplier(supplier_tva, company.company_name if company else None):
+        return supplier_tva
+    best_tva: str | None = None
+    best_price: Decimal | None = None
+    for offer in offers_repo.latest_offers_for_products(db, [product_id]):
+        other = db.get(Company, offer.company_tva_intra_com)
+        if is_urbanize_supplier(
+            offer.company_tva_intra_com, other.company_name if other else None
+        ):
+            continue
+        priced = _offer_unit(db, product_id, offer.company_tva_intra_com)
+        if priced is None:
+            continue
+        if best_price is None or priced[0] < best_price:
+            best_price = priced[0]
+            best_tva = offer.company_tva_intra_com
+    return best_tva
 
 
 def _dec(raw: str | None) -> Decimal:
@@ -354,13 +384,20 @@ def _prepare_line(
     db: Session, line: CartLineIn, dest_zip: str, dest_city: str, ctx: QuoteContext
 ) -> _ReadyLine | None:
     product = db.get(Product, line.product_id)
-    priced = _offer_unit(db, line.product_id, line.supplier_tva)
-    if product is None or priced is None or line.quantity <= 0:
+    if product is None or line.quantity <= 0:
+        return None
+    family = _product_family(db, product.id)
+    supplier_tva = line.supplier_tva
+    if family == "massif":
+        supplier_tva = _real_massif_offer(db, product.id, supplier_tva) or ""
+        if not supplier_tva:
+            return None
+    priced = _offer_unit(db, line.product_id, supplier_tva)
+    if priced is None:
         return None
     unit, delay = priced
-    company = db.get(Company, line.supplier_tva)
-    family = _product_family(db, product.id)
-    origin = supplier_origin(db, line.product_id, line.supplier_tva)
+    company = db.get(Company, supplier_tva)
+    origin = supplier_origin(db, line.product_id, supplier_tva)
     needs_road = (family == "massif" and ctx.massif_transport) or (
         family == "totem" and ctx.totem_transport
     )
@@ -378,8 +415,8 @@ def _prepare_line(
     return _ReadyLine(
         product_id=product.id,
         name=product.product_name,
-        supplier_tva=line.supplier_tva,
-        supplier_name=company.company_name if company else line.supplier_tva,
+        supplier_tva=supplier_tva,
+        supplier_name=company.company_name if company else supplier_tva,
         quantity=line.quantity,
         family=family,
         unit_weight=_dec(_attr_value(db, product.id, "poids")),
@@ -550,6 +587,11 @@ def estimate_product(
     )
     segments_input: list[dict] = []
     for offer in offers:
+        company = db.get(Company, offer.company_tva_intra_com)
+        if family == "massif" and is_urbanize_supplier(
+            offer.company_tva_intra_com, company.company_name if company else None
+        ):
+            continue
         origin = supplier_origin(db, product_id, offer.company_tva_intra_com)
         if needs_origin and origin is None:
             continue
@@ -559,7 +601,6 @@ def estimate_product(
         quoted = quote_lines(db, scenario, ctx)
         added = money(quoted["_total"] - baseline["_total"])
         added_shipping = money(quoted["_shipping"] - baseline["_shipping"])
-        company = db.get(Company, offer.company_tva_intra_com)
         priced = _offer_unit(db, product_id, offer.company_tva_intra_com)
         segments_input.append(
             {

@@ -288,6 +288,44 @@ def lookup_in_range(match_value: Any) -> dict[str, Any]:
     return lookup_product_column_value(match_value)
 
 
+def write_range(
+    spreadsheet_id: str,
+    range_a1: str,
+    rows: list[list[Any]],
+) -> dict[str, Any]:
+    """Écrit une plage dans un tableur précis, sans toucher à la config totem."""
+    sid = (spreadsheet_id or "").strip()
+    ref = (range_a1 or "").strip()
+    if not sid or not ref:
+        raise GoogleSheetsError("missing_ref", "Tableur ou plage manquant.")
+    token = _access_token()
+    url = f"{SHEETS_API}/{sid}/values/{quote(ref, safe='')}"
+    with httpx.Client(timeout=30.0) as client:
+        resp = client.put(
+            url,
+            headers={"Authorization": f"Bearer {token}"},
+            params={"valueInputOption": "USER_ENTERED"},
+            json={"range": ref, "majorDimension": "ROWS", "values": rows},
+        )
+    if resp.status_code == 403:
+        email = ""
+        try:
+            email = str(_load_service_account_info().get("client_email") or "")
+        except GoogleSheetsError:
+            email = ""
+        who = f" Partage le tableur avec {email} (éditeur)." if email else ""
+        raise GoogleSheetsError(
+            "sheets_forbidden",
+            "Le compte Google de la plateforme ne peut pas écrire dans ce tableur." + who,
+        )
+    if resp.status_code >= 400:
+        raise GoogleSheetsError(
+            "sheets_write_failed",
+            f"Écriture Sheets HTTP {resp.status_code}: {resp.text[:500]}",
+        )
+    return {"ok": True, "range": ref, "response": resp.json()}
+
+
 def write_and_lookup(
     region: Any,
     terrain_category: Any,
