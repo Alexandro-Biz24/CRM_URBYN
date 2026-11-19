@@ -24,7 +24,7 @@ Toutes les longueurs sont en millimètres, tous les montants en euros HT.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from app.services.patio_geometrie import (
     Point,
@@ -37,6 +37,10 @@ from app.services.patio_geometrie import (
 )
 
 MAX_PATIOS = 10
+
+# Durée de la mise à disposition proposée au client, en années entières.
+DUREE_ANNEES_MIN = 5
+DUREE_ANNEES_MAX = 10
 
 
 # ── Hypothèses (feuille « Hypothèses ») ─────────────────────────────────────
@@ -93,6 +97,10 @@ class Hypotheses:
     remplacement_pieces_pct: float = 0.2      # B82
     demontage_pct_pose: float = 2 / 3         # B84
     reemploi_tubes_fin: float = 0.3           # B86
+    # Le démontage en fin de mise à disposition n'est plus inclus dans le loyer
+    # (décision du 19/11/2026). Le classeur (version 39) l'incluait : mettre 1
+    # pour retrouver ses valeurs.
+    demontage_inclus_lld: int = 0
 
     # Bloc 7 — location longue durée
     duree_mois: int = 60                      # B91
@@ -472,7 +480,7 @@ def chiffrer(
             * annees
             + h.assurance_pct * c.cout_pose * annees
             + c.pieces_remplacables * h.remplacement_pieces_pct
-            + demontage
+            + demontage * h.demontage_inclus_lld
             - c.valeur_tubes * h.reemploi_tubes_fin
         )
         loyer = _plafond(
@@ -527,16 +535,47 @@ def _eur(value: float) -> float:
     return round(value + 1e-9, 2)
 
 
+def _hypotheses_pour_duree(h: Hypotheses, annees: int) -> Hypotheses:
+    """Hypothèses pour une mise à disposition de `annees` ans.
+
+    Le prêt qui finance le parc est supposé suivre la durée de la mise à
+    disposition (60 mois dans le classeur, soit 5 ans).
+    """
+    return replace(h, duree_mois=12 * annees, duree_pret_mois=12 * annees)
+
+
 def public_quote(
     patios: list[PatioInput],
     *,
     verification_annuelle: bool = False,
     intervention_saisonniere: bool = False,
+    duree_annees: int = DUREE_ANNEES_MIN,
     hypotheses: Hypotheses | None = None,
 ) -> dict:
-    """Devis destiné au site : aucun coût, coefficient ni taux de marge."""
-    h = hypotheses or Hypotheses()
+    """Devis destiné au site : aucun coût, coefficient ni taux de marge.
+
+    La mise à disposition est chiffrée pour chaque durée de 5 à 10 ans : le site
+    en tire le curseur de durée sans rappeler le serveur. `duree_annees` désigne
+    la durée retenue, celle des montants « principaux » du devis.
+    """
+    if not DUREE_ANNEES_MIN <= duree_annees <= DUREE_ANNEES_MAX:
+        raise ValueError(
+            f"La durée doit être comprise entre {DUREE_ANNEES_MIN} et {DUREE_ANNEES_MAX} ans."
+        )
+    base = hypotheses or Hypotheses()
+    h = _hypotheses_pour_duree(base, duree_annees)
     chiffrages = chiffrer(patios, h)
+    # Loyer mensuel de chaque patio, pour chaque durée proposée.
+    grille_loyers: dict[int, list[float]] = {}
+    for annees in range(DUREE_ANNEES_MIN, DUREE_ANNEES_MAX + 1):
+        if annees == duree_annees:
+            chiffrage_duree = chiffrages
+        else:
+            chiffrage_duree = chiffrer(patios, _hypotheses_pour_duree(base, annees))
+        grille_loyers[annees] = [
+            c.offres["retractable_mise_a_disposition"]["loyer_mensuel"]
+            for c in chiffrage_duree
+        ]
     # Prestation obligatoire : toujours facturée, une seule fois pour tous les patios.
     forfait = _eur(h.mise_en_place_ht)
 
@@ -544,7 +583,7 @@ def public_quote(
         return [[round(x, 4), round(y, 4)] for x, y in polygone]
 
     lignes = []
-    for c in chiffrages:
+    for index, c in enumerate(chiffrages):
         o = c.offres
         lignes.append(
             {
@@ -577,6 +616,13 @@ def public_quote(
                         "total_loyers": _eur(
                             o["retractable_mise_a_disposition"]["total_loyers"]
                         ),
+                        "mensualites": [
+                            {
+                                "duree_annees": annees,
+                                "loyer_mensuel": _eur(loyers[index]),
+                            }
+                            for annees, loyers in grille_loyers.items()
+                        ],
                     },
                 },
                 "fixe": {
@@ -595,6 +641,11 @@ def public_quote(
         "devise": "EUR",
         "montants": "HT",
         "duree_mois": h.duree_mois,
+        "duree_annees": duree_annees,
+        "durees_annees": list(grille_loyers),
+        # Taux de financement retenu dans la mensualité de mise à disposition,
+        # en fraction annuelle (0,05 = 5 %). Publié à la demande de Stéphane.
+        "taux_financement": h.taux_emprunt,
         "mise_en_place": {
             "incluse": True,
             "forfait": forfait,
@@ -617,6 +668,13 @@ def public_quote(
             "retractable_loyer_mensuel": _total(
                 "retractable", "mise_a_disposition", "loyer_mensuel"
             ),
+            "retractable_loyers_mensuels": [
+                {
+                    "duree_annees": annees,
+                    "loyer_mensuel": _eur(sum(_eur(loyer) for loyer in loyers)),
+                }
+                for annees, loyers in grille_loyers.items()
+            ],
             "fixe_acquisition": _total("fixe", "acquisition", "prix_net"),
             "retractable_verification_annuelle": _total(
                 "retractable", "acquisition", "verification_annuelle"

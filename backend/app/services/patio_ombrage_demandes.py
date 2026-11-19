@@ -67,6 +67,7 @@ def enregistrer_demande(
         patios,
         verification_annuelle=demande.verification_annuelle,
         intervention_saisonniere=demande.intervention_saisonniere,
+        duree_annees=demande.duree_annees,
     )
 
     ligne = OmbragePatioDemande(
@@ -76,7 +77,13 @@ def enregistrer_demande(
         telephone=demande.contact.telephone.strip(),
         societe=demande.contact.societe.strip(),
         message=demande.contact.message.strip(),
+        chantier_adresse=demande.chantier.adresse,
+        chantier_complement=demande.chantier.complement,
+        chantier_code_postal=demande.chantier.code_postal,
+        chantier_ville=demande.chantier.ville,
+        chantier_pays=demande.chantier.pays,
         mise_en_place=True,
+        duree_annees=demande.duree_annees,
         patios=[patio.model_dump() for patio in demande.patios],
         devis=devis,
     )
@@ -120,13 +127,19 @@ def notifier_demande(ligne: OmbragePatioDemande) -> bool:
 
     devis = ligne.devis
     lignes = [
-        f"Demande n° {ligne.id} — solution d'ombrage pour patio",
+        f"Demande n° {ligne.id} — solution d'ombrage pour patio (demande de devis officiel)",
         "",
         f"Contact  : {ligne.prenom} {ligne.nom}",
         f"Société  : {ligne.societe or '—'}",
         f"Email    : {ligne.email}",
         f"Téléphone: {ligne.telephone}",
         f"Message  : {ligne.message or '—'}",
+        "",
+        "Adresse du chantier :",
+        f"  {ligne.chantier_adresse}",
+        *([f"  {ligne.chantier_complement}"] if ligne.chantier_complement else []),
+        f"  {ligne.chantier_code_postal} {ligne.chantier_ville}",
+        f"  {ligne.chantier_pays}",
         "",
         f"Mise en place (obligatoire) : {_eur(devis['mise_en_place']['forfait'])}",
         "",
@@ -148,7 +161,7 @@ def notifier_demande(ligne: OmbragePatioDemande) -> bool:
             + ", ".join(f"{v['longueur_mm'] / 1000:.2f} m" for v in retractable["velums"]),
             f"  Repliable, acquisition         : {_eur(retractable['acquisition']['prix_net'])}",
             f"  Repliable, mise à disposition  : {_eur(retractable['mise_a_disposition']['loyer_mensuel'])} / mois"
-            f" sur {retractable['mise_a_disposition']['duree_mois']} mois",
+            f" sur {ligne.duree_annees} ans (durée retenue)",
             f"  Fixe, acquisition              : {_eur(fixe['acquisition']['prix_net'])}",
             "",
         ]
@@ -157,7 +170,7 @@ def notifier_demande(ligne: OmbragePatioDemande) -> bool:
     try:
         send_internal_notification(
             to_email=destinataire,
-            subject=f"Urbyn — Demande ombrage patio n° {ligne.id} ({ligne.societe or ligne.nom})",
+            subject=f"Urbyn — Demande de devis officiel, ombrage patio n° {ligne.id} ({ligne.societe or ligne.nom})",
             text="\n".join(lignes),
             reply_to=ligne.email,
             attachments=[(photo.filename, photo.content_type, photo.data) for photo in ligne.photos],

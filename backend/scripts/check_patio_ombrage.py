@@ -15,7 +15,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.services.patio_ombrage import Hypotheses, PatioInput, chiffrer, public_quote  # noqa: E402
 
 patio = PatioInput("Patio 1", 10_000, 10_000, 10_000, 10_000)
-c = chiffrer([patio])[0]
+# Le classeur inclut le démontage dans le loyer ; le moteur ne l'inclut plus
+# depuis le 19/11/2026 : on compare donc au classeur avec l'ancienne hypothèse.
+HYPOTHESES_CLASSEUR = Hypotheses(demontage_inclus_lld=1)
+c = chiffrer([patio], HYPOTHESES_CLASSEUR)[0]
 o = c.offres
 
 REFERENCES = [
@@ -31,6 +34,9 @@ REFERENCES = [
     ("Coût complet fixe (Offres par patio B37)", o["fixe_acquisition"]["cout_complet_duree"], 34567.765),
     ("Forfait mise en place (Hypothèses B73)", Hypotheses().mise_en_place_ht, 7500),
 ]
+
+loyer_sans_demontage = chiffrer([patio])[0].offres["retractable_mise_a_disposition"]["loyer_mensuel"]
+print(f"INFO  Loyer mensuel sans démontage (moteur actuel)        {loyer_sans_demontage:>12.2f}")
 
 ecarts = 0
 for libelle, calcule, attendu in REFERENCES:

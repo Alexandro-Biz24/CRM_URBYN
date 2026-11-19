@@ -23,7 +23,16 @@ class OmbragePatioDemande(Base):
     societe: Mapped[str] = mapped_column(String(120), default="", nullable=False)
     message: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
+    # Adresse du chantier, où le dispositif sera installé.
+    chantier_adresse: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    chantier_complement: Mapped[str] = mapped_column(String(200), default="", nullable=False)
+    chantier_code_postal: Mapped[str] = mapped_column(String(12), default="", nullable=False)
+    chantier_ville: Mapped[str] = mapped_column(String(80), default="", nullable=False)
+    chantier_pays: Mapped[str] = mapped_column(String(60), default="France", nullable=False)
+
     mise_en_place: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Durée de mise à disposition retenue (couverture repliable), en années.
+    duree_annees: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
     # Dimensions saisies, puis devis public tel qu'il a été présenté au client.
     patios: Mapped[list] = mapped_column(JSON, nullable=False)
     devis: Mapped[dict] = mapped_column(JSON, nullable=False)

@@ -27,6 +27,7 @@ def quote_patios(body: PatioQuoteRequest) -> dict:
             to_patio_inputs(body),
             verification_annuelle=body.verification_annuelle,
             intervention_saisonniere=body.intervention_saisonniere,
+            duree_annees=body.duree_annees,
         )
     except DimensionsImpossibles as exc:
         raise HTTPException(
@@ -100,6 +101,14 @@ def lister_demandes(db: Session = Depends(get_db)) -> dict:
                     "societe": ligne.societe,
                     "message": ligne.message,
                 },
+                "chantier": {
+                    "adresse": ligne.chantier_adresse,
+                    "complement": ligne.chantier_complement,
+                    "code_postal": ligne.chantier_code_postal,
+                    "ville": ligne.chantier_ville,
+                    "pays": ligne.chantier_pays,
+                },
+                "duree_annees": ligne.duree_annees,
                 "mise_en_place": ligne.mise_en_place,
                 "patios": ligne.patios,
                 "devis": ligne.devis,
