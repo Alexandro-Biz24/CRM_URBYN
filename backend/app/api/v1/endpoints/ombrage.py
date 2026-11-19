@@ -25,7 +25,6 @@ def quote_patios(body: PatioQuoteRequest) -> dict:
     try:
         return public_quote(
             to_patio_inputs(body),
-            mise_en_place=body.mise_en_place,
             verification_annuelle=body.verification_annuelle,
             intervention_saisonniere=body.intervention_saisonniere,
         )

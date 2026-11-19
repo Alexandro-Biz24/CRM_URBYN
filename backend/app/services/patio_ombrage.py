@@ -530,7 +530,6 @@ def _eur(value: float) -> float:
 def public_quote(
     patios: list[PatioInput],
     *,
-    mise_en_place: bool = True,
     verification_annuelle: bool = False,
     intervention_saisonniere: bool = False,
     hypotheses: Hypotheses | None = None,
@@ -538,7 +537,8 @@ def public_quote(
     """Devis destiné au site : aucun coût, coefficient ni taux de marge."""
     h = hypotheses or Hypotheses()
     chiffrages = chiffrer(patios, h)
-    forfait = _eur(h.mise_en_place_ht) if mise_en_place else 0.0
+    # Prestation obligatoire : toujours facturée, une seule fois pour tous les patios.
+    forfait = _eur(h.mise_en_place_ht)
 
     def _points(polygone: list[Point]) -> list[list[float]]:
         return [[round(x, 4), round(y, 4)] for x, y in polygone]
@@ -596,7 +596,7 @@ def public_quote(
         "montants": "HT",
         "duree_mois": h.duree_mois,
         "mise_en_place": {
-            "incluse": mise_en_place,
+            "incluse": True,
             "forfait": forfait,
             "prestations": [
                 "Étude thermique",

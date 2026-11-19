@@ -65,7 +65,6 @@ def enregistrer_demande(
     patios = to_patio_inputs(demande)
     devis = public_quote(
         patios,
-        mise_en_place=demande.mise_en_place,
         verification_annuelle=demande.verification_annuelle,
         intervention_saisonniere=demande.intervention_saisonniere,
     )
@@ -77,7 +76,7 @@ def enregistrer_demande(
         telephone=demande.contact.telephone.strip(),
         societe=demande.contact.societe.strip(),
         message=demande.contact.message.strip(),
-        mise_en_place=demande.mise_en_place,
+        mise_en_place=True,
         patios=[patio.model_dump() for patio in demande.patios],
         devis=devis,
     )
@@ -129,7 +128,7 @@ def notifier_demande(ligne: OmbragePatioDemande) -> bool:
         f"Téléphone: {ligne.telephone}",
         f"Message  : {ligne.message or '—'}",
         "",
-        f"Mise en place : {'oui — ' + _eur(devis['mise_en_place']['forfait']) if ligne.mise_en_place else 'non'}",
+        f"Mise en place (obligatoire) : {_eur(devis['mise_en_place']['forfait'])}",
         "",
     ]
     options = devis.get("options", {})
