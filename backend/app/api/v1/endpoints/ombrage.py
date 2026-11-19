@@ -23,7 +23,12 @@ router = APIRouter()
 def quote_patios(body: PatioQuoteRequest) -> dict:
     """Chiffrage par patio : prix de vente uniquement, aucun coût ni marge."""
     try:
-        return public_quote(to_patio_inputs(body), mise_en_place=body.mise_en_place)
+        return public_quote(
+            to_patio_inputs(body),
+            mise_en_place=body.mise_en_place,
+            verification_annuelle=body.verification_annuelle,
+            intervention_saisonniere=body.intervention_saisonniere,
+        )
     except DimensionsImpossibles as exc:
         raise HTTPException(
             status_code=422,

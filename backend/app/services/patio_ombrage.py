@@ -531,6 +531,8 @@ def public_quote(
     patios: list[PatioInput],
     *,
     mise_en_place: bool = True,
+    verification_annuelle: bool = False,
+    intervention_saisonniere: bool = False,
     hypotheses: Hypotheses | None = None,
 ) -> dict:
     """Devis destiné au site : aucun coût, coefficient ni taux de marge."""
@@ -602,6 +604,12 @@ def public_quote(
                 "Repérage et prise de mesure",
             ],
         },
+        # Options choisies par le client : les montants correspondants figurent
+        # dans chaque patio, le site ne les affiche que si l'option est retenue.
+        "options": {
+            "verification_annuelle": verification_annuelle,
+            "intervention_saisonniere": intervention_saisonniere,
+        },
         "patios": lignes,
         "totaux": {
             "surface_m2": round(sum(ligne["surface_m2"] for ligne in lignes), 2),
@@ -610,5 +618,14 @@ def public_quote(
                 "retractable", "mise_a_disposition", "loyer_mensuel"
             ),
             "fixe_acquisition": _total("fixe", "acquisition", "prix_net"),
+            "retractable_verification_annuelle": _total(
+                "retractable", "acquisition", "verification_annuelle"
+            ),
+            "fixe_saisonnier_annees_suivantes": _total(
+                "fixe", "acquisition", "saisonnier_annees_suivantes"
+            ),
+            "fixe_saisonnier_premiere_annee": _total(
+                "fixe", "acquisition", "saisonnier_premiere_annee"
+            ),
         },
     }

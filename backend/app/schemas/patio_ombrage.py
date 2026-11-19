@@ -22,6 +22,11 @@ class PatioIn(BaseModel):
 class PatioQuoteRequest(BaseModel):
     patios: list[PatioIn] = Field(min_length=1, max_length=MAX_PATIOS)
     mise_en_place: bool = True
+    # Options facultatives, chacune propre à une solution :
+    # vérification annuelle (repliable, acquisition) ; intervention pour installer
+    # en avril et démonter en octobre (fixe).
+    verification_annuelle: bool = False
+    intervention_saisonniere: bool = False
 
 
 class PatioContact(BaseModel):

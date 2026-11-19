@@ -63,7 +63,12 @@ def enregistrer_demande(
 ) -> OmbragePatioDemande:
     """Recalcule le devis côté serveur, enregistre la demande et ses photos."""
     patios = to_patio_inputs(demande)
-    devis = public_quote(patios, mise_en_place=demande.mise_en_place)
+    devis = public_quote(
+        patios,
+        mise_en_place=demande.mise_en_place,
+        verification_annuelle=demande.verification_annuelle,
+        intervention_saisonniere=demande.intervention_saisonniere,
+    )
 
     ligne = OmbragePatioDemande(
         prenom=demande.contact.prenom.strip(),
@@ -126,6 +131,13 @@ def notifier_demande(ligne: OmbragePatioDemande) -> bool:
         "",
         f"Mise en place : {'oui — ' + _eur(devis['mise_en_place']['forfait']) if ligne.mise_en_place else 'non'}",
         "",
+    ]
+    options = devis.get("options", {})
+    lignes[-1:-1] = [
+        "Vérification annuelle (repliable, acquisition) : "
+        + ("souhaitée" if options.get("verification_annuelle") else "non"),
+        "Intervention avril / octobre (fixe)           : "
+        + ("souhaitée" if options.get("intervention_saisonniere") else "non"),
     ]
     avec_photo = {photo.patio_index for photo in ligne.photos}
     for index, patio in enumerate(devis["patios"]):
